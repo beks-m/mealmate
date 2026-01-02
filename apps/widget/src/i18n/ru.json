@@ -1,0 +1,65 @@
+{
+  "app.title": "MealMate",
+
+  "nav.dashboard": "Главная",
+  "nav.recipes": "Рецепты",
+  "nav.mealPlan": "План питания",
+  "nav.shopping": "Список покупок",
+  "nav.settings": "Настройки",
+
+  "common.loading": "Загрузка...",
+  "common.save": "Сохранить",
+  "common.cancel": "Отмена",
+  "common.delete": "Удалить",
+  "common.edit": "Редактировать",
+
+  "dashboard.recipesDescription": "Просмотр и управление сохранёнными рецептами",
+  "dashboard.mealPlanDescription": "Планируйте питание на неделю",
+  "dashboard.shoppingDescription": "Ваш список покупок",
+  "dashboard.tip": "Совет: Попросите ChatGPT сгенерировать рецепт, затем сохраните его!",
+
+  "recipes.empty": "Нет сохранённых рецептов",
+  "recipes.emptyHint": "Попросите ChatGPT сгенерировать рецепт и сохраните его",
+  "recipe.calories": "{count} ккал",
+  "recipe.servings": "{count, plural, one {# порция} few {# порции} many {# порций} other {# порций}}",
+  "recipe.prepTime": "{minutes} мин подготовка",
+  "recipe.cookTime": "{minutes} мин готовка",
+  "recipe.ingredients": "Ингредиенты",
+  "recipe.instructions": "Инструкции",
+  "recipe.save": "Сохранить рецепт",
+  "recipe.addToMealPlan": "Добавить в план",
+  "recipe.notFound": "Рецепт не найден",
+
+  "mealPlan.empty": "План питания пуст",
+  "mealPlan.emptyHint": "Попросите ChatGPT создать план питания",
+  "mealPlan.calendarPlaceholder": "Здесь появится календарь питания",
+  "mealPlan.breakfast": "Завтрак",
+  "mealPlan.lunch": "Обед",
+  "mealPlan.dinner": "Ужин",
+  "mealPlan.snack": "Перекус",
+  "mealPlan.generatePlan": "Сгенерировать план",
+  "mealPlan.dailyTotal": "Итого за день",
+
+  "shopping.empty": "Список покупок пуст",
+  "shopping.emptyHint": "Сформируйте список из плана питания",
+  "shopping.generateList": "Сформировать список",
+  "shopping.clearCompleted": "Очистить купленное",
+
+  "settings.dietaryGoals": "Цели питания",
+  "settings.dietaryGoalsDescription": "Установите дневные цели по калориям и макросам",
+  "settings.familyMembers": "Члены семьи",
+  "settings.familyMembersDescription": "Добавьте членов семьи с их потребностями",
+  "settings.language": "Язык",
+  "settings.languageDescription": "Выберите предпочитаемый язык",
+
+  "goals.weightLoss": "Похудение",
+  "goals.maintenance": "Поддержание веса",
+  "goals.muscleGain": "Набор массы",
+  "goals.custom": "Свои цели",
+
+  "nutrition.calories": "Калории",
+  "nutrition.protein": "Белки",
+  "nutrition.carbs": "Углеводы",
+  "nutrition.fat": "Жиры",
+  "nutrition.fiber": "Клетчатка"
+}

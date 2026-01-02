@@ -1,0 +1,31 @@
+{
+  "name": "mealmate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered meal planning ChatGPT Mini App",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:widget": "pnpm --filter @mealmate/widget dev",
+    "dev:server": "pnpm --filter @mealmate/server dev",
+    "build": "pnpm -r build",
+    "build:widget": "pnpm --filter @mealmate/widget build",
+    "build:server": "pnpm --filter @mealmate/server build",
+    "serve": "serve -s ./assets -p 4444 --cors",
+    "start:server": "pnpm --filter @mealmate/server start",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "db:migrate": "supabase db push",
+    "db:seed": "supabase db seed",
+    "db:reset": "supabase db reset"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@10.13.1"
+}

@@ -1,0 +1,65 @@
+{
+  "app.title": "MealMate",
+
+  "nav.dashboard": "Dashboard",
+  "nav.recipes": "Recipes",
+  "nav.mealPlan": "Meal Plan",
+  "nav.shopping": "Shopping List",
+  "nav.settings": "Settings",
+
+  "common.loading": "Loading...",
+  "common.save": "Save",
+  "common.cancel": "Cancel",
+  "common.delete": "Delete",
+  "common.edit": "Edit",
+
+  "dashboard.recipesDescription": "View and manage your saved recipes",
+  "dashboard.mealPlanDescription": "Plan your meals for the week",
+  "dashboard.shoppingDescription": "Your shopping list",
+  "dashboard.tip": "Tip: Ask ChatGPT to generate a recipe, then save it here!",
+
+  "recipes.empty": "No recipes saved yet",
+  "recipes.emptyHint": "Ask ChatGPT to generate a recipe and save it",
+  "recipe.calories": "{count} cal",
+  "recipe.servings": "{count, plural, one {# serving} other {# servings}}",
+  "recipe.prepTime": "{minutes} min prep",
+  "recipe.cookTime": "{minutes} min cook",
+  "recipe.ingredients": "Ingredients",
+  "recipe.instructions": "Instructions",
+  "recipe.save": "Save Recipe",
+  "recipe.addToMealPlan": "Add to Meal Plan",
+  "recipe.notFound": "Recipe not found",
+
+  "mealPlan.empty": "No meal plan yet",
+  "mealPlan.emptyHint": "Ask ChatGPT to create a meal plan for you",
+  "mealPlan.calendarPlaceholder": "Meal plan calendar will appear here",
+  "mealPlan.breakfast": "Breakfast",
+  "mealPlan.lunch": "Lunch",
+  "mealPlan.dinner": "Dinner",
+  "mealPlan.snack": "Snack",
+  "mealPlan.generatePlan": "Generate Meal Plan",
+  "mealPlan.dailyTotal": "Daily Total",
+
+  "shopping.empty": "Shopping list is empty",
+  "shopping.emptyHint": "Generate a shopping list from your meal plan",
+  "shopping.generateList": "Generate Shopping List",
+  "shopping.clearCompleted": "Clear Completed",
+
+  "settings.dietaryGoals": "Dietary Goals",
+  "settings.dietaryGoalsDescription": "Set your daily calorie and macro targets",
+  "settings.familyMembers": "Family Members",
+  "settings.familyMembersDescription": "Add family members with their own dietary needs",
+  "settings.language": "Language",
+  "settings.languageDescription": "Choose your preferred language",
+
+  "goals.weightLoss": "Weight Loss",
+  "goals.maintenance": "Maintenance",
+  "goals.muscleGain": "Muscle Gain",
+  "goals.custom": "Custom Goals",
+
+  "nutrition.calories": "Calories",
+  "nutrition.protein": "Protein",
+  "nutrition.carbs": "Carbs",
+  "nutrition.fat": "Fat",
+  "nutrition.fiber": "Fiber"
+}
