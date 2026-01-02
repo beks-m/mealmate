@@ -92,6 +92,8 @@ export class McpService implements OnModuleDestroy {
 
   async handleSseConnection(res: Response) {
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Accel-Buffering', 'no');
 
     const server = this.createMcpServer();
     const transport = new SSEServerTransport('/mcp/messages', res);
@@ -99,18 +101,28 @@ export class McpService implements OnModuleDestroy {
 
     this.sessions.set(sessionId, { server, transport });
 
+    // Keep-alive ping every 25 seconds to prevent proxy timeouts
+    const keepAlive = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(':keepalive\n\n');
+      }
+    }, 25000);
+
     transport.onclose = async () => {
+      clearInterval(keepAlive);
       this.sessions.delete(sessionId);
       await server.close();
     };
 
     transport.onerror = (error) => {
+      clearInterval(keepAlive);
       console.error('SSE transport error:', error);
     };
 
     try {
       await server.connect(transport);
     } catch (error) {
+      clearInterval(keepAlive);
       this.sessions.delete(sessionId);
       console.error('Failed to start SSE session:', error);
       if (!res.headersSent) {
