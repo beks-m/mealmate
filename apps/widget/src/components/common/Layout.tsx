@@ -23,7 +23,7 @@ export function Layout({ children }: LayoutProps) {
   const { displayMode, isFullscreen, goFullscreen, goInline } = useDisplayMode();
 
   const containerRef = useRef<HTMLDivElement>(null);
-  useIntrinsicHeight(containerRef, [children, location.pathname]);
+  useIntrinsicHeight(containerRef);
 
   const isDark = theme === 'dark';
 

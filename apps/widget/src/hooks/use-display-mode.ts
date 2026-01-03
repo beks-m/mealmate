@@ -50,20 +50,22 @@ export function useDisplayMode() {
  * Prevents scroll clipping in inline mode.
  *
  * @param containerRef - Ref to the container element to measure
- * @param deps - Dependencies to trigger recalculation
  */
 export function useIntrinsicHeight<T extends HTMLElement>(
-  containerRef: React.RefObject<T | null>,
-  deps: React.DependencyList = []
+  containerRef: React.RefObject<T | null>
 ) {
   const lastHeight = useRef<number>(0);
+  const observerRef = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.openai?.notifyIntrinsicHeight) {
+    if (typeof window === 'undefined') {
       return;
     }
 
     const notifyHeight = () => {
+      if (!window.openai?.notifyIntrinsicHeight) {
+        return;
+      }
       const height = containerRef.current?.scrollHeight;
       if (height && height !== lastHeight.current) {
         lastHeight.current = height;
@@ -71,17 +73,21 @@ export function useIntrinsicHeight<T extends HTMLElement>(
       }
     };
 
-    // Initial notification
-    notifyHeight();
-
-    // Set up ResizeObserver for dynamic content
-    const observer = new ResizeObserver(notifyHeight);
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    // Set up ResizeObserver once
+    if (!observerRef.current) {
+      observerRef.current = new ResizeObserver(notifyHeight);
     }
 
-    return () => observer.disconnect();
-  }, [containerRef, ...deps]);
+    if (containerRef.current) {
+      observerRef.current.observe(containerRef.current);
+      // Initial notification after a small delay to let content settle
+      setTimeout(notifyHeight, 100);
+    }
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, [containerRef]);
 }
 
 /**

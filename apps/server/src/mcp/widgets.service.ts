@@ -231,56 +231,18 @@ export class WidgetsService {
 
     const view = viewMap[componentName] || 'dashboard';
 
-    // Use minimal test widget to debug rendering issues
-    // TODO: Replace with full widget once rendering is confirmed
+    // Full React widget with inlined CSS and JS
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MealMate - ${componentName}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    .widget {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    h1 { color: #333; margin-bottom: 16px; font-size: 24px; }
-    p { color: #666; line-height: 1.6; }
-    .info {
-      margin-top: 16px;
-      padding: 12px;
-      background: #e8f5e9;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-  </style>
+  <title>MealMate</title>
+  <style>${this.bundledCss}</style>
 </head>
 <body>
-  <div class="widget">
-    <h1>MealMate Widget</h1>
-    <p>View: <strong>${view}</strong></p>
-    <p>Widget ID: <strong>${componentName}</strong></p>
-    <div class="info">
-      Widget is rendering successfully! This is a test widget to confirm the rendering pipeline works.
-    </div>
-  </div>
-  <script>
-    // Log to confirm script execution
-    console.log('MealMate widget loaded:', '${componentName}');
-    console.log('window.openai available:', typeof window.openai !== 'undefined');
-    if (window.openai) {
-      console.log('toolOutput:', window.openai.toolOutput);
-      console.log('theme:', window.openai.theme);
-    }
-  </script>
+  <div id="root" data-view="${view}" data-widget-id="${componentName}"></div>
+  <script type="module">${this.bundledJs}</script>
 </body>
 </html>`;
   }

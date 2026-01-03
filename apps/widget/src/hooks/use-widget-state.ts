@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState, type SetStateAction } from 'react';
-import { useOpenAiGlobal } from './use-openai-global';
+import { useCallback, useState, type SetStateAction } from 'react';
 import type { UnknownObject } from '../types/openai';
 
 export function useWidgetState<T extends UnknownObject>(
@@ -13,21 +12,15 @@ export function useWidgetState<T extends UnknownObject>(
 export function useWidgetState<T extends UnknownObject>(
   defaultState?: T | (() => T | null) | null
 ): readonly [T | null, (state: SetStateAction<T | null>) => void] {
-  const widgetStateFromWindow = useOpenAiGlobal('widgetState') as T;
-
+  // Initialize state from window.openai.widgetState (set once by ChatGPT) or default
   const [widgetState, _setWidgetState] = useState<T | null>(() => {
-    if (widgetStateFromWindow != null) {
-      return widgetStateFromWindow;
+    if (typeof window !== 'undefined' && window.openai?.widgetState != null) {
+      return window.openai.widgetState as T;
     }
-
     return typeof defaultState === 'function'
       ? defaultState()
       : defaultState ?? null;
   });
-
-  useEffect(() => {
-    _setWidgetState(widgetStateFromWindow);
-  }, [widgetStateFromWindow]);
 
   const setWidgetState = useCallback(
     (state: SetStateAction<T | null>) => {
