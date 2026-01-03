@@ -4,6 +4,7 @@
   "private": true,
   "description": "AI-powered meal planning ChatGPT Mini App",
   "scripts": {
+    "start": "pnpm --filter @mealmate/server start",
     "dev": "pnpm -r --parallel dev",
     "dev:widget": "pnpm --filter @mealmate/widget dev",
     "dev:server": "pnpm --filter @mealmate/server dev",
