@@ -101,7 +101,7 @@ const DeleteRecipeSchema = z.object({
 interface ToolResult {
   content: Array<{ type: string; text: string }>;
   structuredContent: Record<string, unknown>;
-  _meta?: Record<string, string>;
+  _meta?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -408,11 +408,9 @@ export class ToolsService {
       name.replace('show_', 'mealmate-').replace(/_/g, '-')
     );
 
-    const invocationMeta: Record<string, string> | undefined = widget
-      ? {
-          'openai/toolInvocation/invoking': widget.invoking,
-          'openai/toolInvocation/invoked': widget.invoked,
-        }
+    // Include full widget meta with outputTemplate for ChatGPT to render the widget
+    const invocationMeta: Record<string, unknown> | undefined = widget
+      ? this.widgetsService.getWidgetMeta(widget)
       : undefined;
 
     switch (name) {
