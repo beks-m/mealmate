@@ -1,12 +1,16 @@
-import { Controller, Get, Options, Req, Res, Logger, All } from '@nestjs/common';
+import { Controller, Get, Options, Req, Res, Logger, All, Param, Header } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { McpService } from './mcp.service.js';
+import { WidgetsService } from './widgets.service.js';
 
 @Controller()
 export class McpController {
   private readonly logger = new Logger(McpController.name);
 
-  constructor(private readonly mcpService: McpService) {
+  constructor(
+    private readonly mcpService: McpService,
+    private readonly widgetsService: WidgetsService,
+  ) {
     this.logger.log('McpController initialized');
   }
 
@@ -15,6 +19,20 @@ export class McpController {
   healthCheck() {
     this.logger.log('Health check called');
     return { status: 'ok', service: 'mealmate-mcp' };
+  }
+
+  // Serve widget HTML directly via HTTP
+  @Get('widgets/:widgetId')
+  @Header('Content-Type', 'text/html')
+  @Header('Access-Control-Allow-Origin', '*')
+  getWidget(@Param('widgetId') widgetId: string) {
+    this.logger.log(`Serving widget HTML for: ${widgetId}`);
+    const widget = this.widgetsService.getWidgetById(widgetId);
+    if (!widget) {
+      return '<html><body>Widget not found</body></html>';
+    }
+    this.logger.log(`Widget HTML length: ${widget.html.length}`);
+    return widget.html;
   }
 
   // CORS preflight for /mcp

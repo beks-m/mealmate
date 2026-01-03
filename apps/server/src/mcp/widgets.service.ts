@@ -158,15 +158,18 @@ export class WidgetsService {
     ];
 
     for (const def of widgetDefinitions) {
+      // Use real HTTP URL for widget template (ChatGPT can fetch directly)
       const widget: Widget = {
         ...def,
-        templateUri: `ui://widget/${def.id}.html`,
+        templateUri: `${baseUrl}/widgets/${def.id}`,
         html: this.readWidgetHtml(def.id),
       };
 
       this.widgets.push(widget);
       this.widgetsByUri.set(widget.templateUri, widget);
     }
+
+    this.logger.log(`Initialized ${this.widgets.length} widgets with HTTP URLs`);
   }
 
   private readWidgetHtml(componentName: string): string {
