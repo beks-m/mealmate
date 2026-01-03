@@ -97,9 +97,26 @@ const DeleteRecipeSchema = z.object({
   recipe_id: z.string(),
 });
 
+// Define content types for tool calls
+interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+interface EmbeddedResource {
+  type: 'resource';
+  resource: {
+    uri: string;
+    mimeType: string;
+    text: string;
+  };
+}
+
+type ContentItem = TextContent | EmbeddedResource;
+
 // Define return type for tool calls
 interface ToolResult {
-  content: Array<{ type: string; text: string }>;
+  content: ContentItem[];
   structuredContent: Record<string, unknown>;
   _meta?: Record<string, unknown>;
 }
@@ -411,28 +428,26 @@ export class ToolsService {
 
     this.logger.log(`callTool: ${name}, widgetId: ${widgetId}, widget found: ${!!widget}`);
 
-    // Include full widget meta with outputTemplate AND embedded widget resource
+    // Build embedded resource for widget tools (per MCP spec, goes in content array)
+    let embeddedResource: EmbeddedResource | undefined;
     let invocationMeta: Record<string, unknown> | undefined;
+
     if (widget) {
       this.logger.log(`Widget HTML length: ${widget.html.length}`);
       this.logger.log(`Widget HTML preview: ${widget.html.substring(0, 200)}...`);
 
-      const widgetMeta = this.widgetsService.getWidgetMeta(widget);
-      // Add embedded widget resource as per OpenAI Apps SDK spec
-      const embeddedResource = {
+      // Embedded resource goes in content array per MCP specification
+      embeddedResource = {
         type: 'resource',
         resource: {
           uri: widget.templateUri,
           mimeType: 'text/html+skybridge',
           text: widget.html,
-          title: widget.title,
         },
       };
-      invocationMeta = {
-        ...widgetMeta,
-        'openai.com/widget': embeddedResource,
-        'openai/resultCanProduceWidget': true,
-      };
+
+      // Widget metadata for OpenAI
+      invocationMeta = this.widgetsService.getWidgetMeta(widget);
       this.logger.log(`invocationMeta keys: ${Object.keys(invocationMeta).join(', ')}`);
     }
 
@@ -551,10 +566,12 @@ export class ToolsService {
         };
       }
 
-      // UI tools
+      // UI tools - include embedded resource in content array per MCP spec
       case 'show_dashboard':
         return {
-          content: [{ type: 'text', text: 'Displaying your MealMate dashboard.' }],
+          content: embeddedResource
+            ? [{ type: 'text', text: 'Displaying your MealMate dashboard.' }, embeddedResource]
+            : [{ type: 'text', text: 'Displaying your MealMate dashboard.' }],
           structuredContent: {},
           _meta: invocationMeta,
         };
@@ -562,7 +579,9 @@ export class ToolsService {
       case 'show_recipes': {
         const input = ShowRecipesSchema.parse(args);
         return {
-          content: [{ type: 'text', text: 'Displaying your recipes.' }],
+          content: embeddedResource
+            ? [{ type: 'text', text: 'Displaying your recipes.' }, embeddedResource]
+            : [{ type: 'text', text: 'Displaying your recipes.' }],
           structuredContent: { category: input.category },
           _meta: invocationMeta,
         };
@@ -571,7 +590,9 @@ export class ToolsService {
       case 'show_recipe_detail': {
         const input = ShowRecipeDetailSchema.parse(args);
         return {
-          content: [{ type: 'text', text: 'Displaying recipe details.' }],
+          content: embeddedResource
+            ? [{ type: 'text', text: 'Displaying recipe details.' }, embeddedResource]
+            : [{ type: 'text', text: 'Displaying recipe details.' }],
           structuredContent: { recipe_id: input.recipe_id },
           _meta: invocationMeta,
         };
@@ -580,7 +601,9 @@ export class ToolsService {
       case 'show_meal_plan': {
         const input = ShowMealPlanSchema.parse(args);
         return {
-          content: [{ type: 'text', text: 'Displaying your meal plan.' }],
+          content: embeddedResource
+            ? [{ type: 'text', text: 'Displaying your meal plan.' }, embeddedResource]
+            : [{ type: 'text', text: 'Displaying your meal plan.' }],
           structuredContent: { meal_plan_id: input.meal_plan_id },
           _meta: invocationMeta,
         };
@@ -589,7 +612,9 @@ export class ToolsService {
       case 'show_shopping_list': {
         const input = ShowShoppingListSchema.parse(args);
         return {
-          content: [{ type: 'text', text: 'Displaying your shopping list.' }],
+          content: embeddedResource
+            ? [{ type: 'text', text: 'Displaying your shopping list.' }, embeddedResource]
+            : [{ type: 'text', text: 'Displaying your shopping list.' }],
           structuredContent: { shopping_list_id: input.shopping_list_id },
           _meta: invocationMeta,
         };
