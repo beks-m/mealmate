@@ -194,19 +194,23 @@ export class WidgetsService {
       }
     }
 
-    const baseUrl = process.env.BASE_URL || 'https://mealmate-server-production.up.railway.app';
     this.logger.warn(`Fallback HTML for ${componentName} - bundledJs: ${!!this.bundledJs}, bundledCss: ${!!this.bundledCss}`);
+    // If we have bundled assets, use them inline
+    if (this.bundledJs && this.bundledCss) {
+      return this.generateWidgetHtml(componentName);
+    }
+    // Otherwise return minimal fallback
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MealMate</title>
-  <link rel="stylesheet" href="${baseUrl}/widget-assets/meal-planner.css">
 </head>
 <body>
-  <div id="root" data-view="${componentName.replace('mealmate-', '')}" data-widget-id="${componentName}">Loading...</div>
-  <script type="module" src="${baseUrl}/widget-assets/meal-planner.js"></script>
+  <div id="root" style="padding: 20px; font-family: system-ui;">
+    <p>Widget assets not available. Please rebuild the widget.</p>
+  </div>
 </body>
 </html>`;
   }
@@ -223,19 +227,20 @@ export class WidgetsService {
     };
 
     const view = viewMap[componentName] || 'dashboard';
-    const baseUrl = process.env.BASE_URL || 'https://mealmate-server-production.up.railway.app';
 
+    // ChatGPT widgets run in sandboxed iframes - must inline all CSS and JS
+    // External resources may be blocked by CSP
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MealMate</title>
-  <link rel="stylesheet" href="${baseUrl}/widget-assets/meal-planner.css">
+  <style>${this.bundledCss}</style>
 </head>
 <body>
   <div id="root" data-view="${view}" data-widget-id="${componentName}"></div>
-  <script type="module" src="${baseUrl}/widget-assets/meal-planner.js"></script>
+  <script type="module">${this.bundledJs}</script>
 </body>
 </html>`;
   }
