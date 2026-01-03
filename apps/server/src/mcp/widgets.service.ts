@@ -194,7 +194,21 @@ export class WidgetsService {
       }
     }
 
-    return `<!DOCTYPE html><html><body><div id="root">Widget ${componentName} - Build required</div></body></html>`;
+    const baseUrl = process.env.BASE_URL || 'https://mealmate-server-production.up.railway.app';
+    this.logger.warn(`Fallback HTML for ${componentName} - bundledJs: ${!!this.bundledJs}, bundledCss: ${!!this.bundledCss}`);
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MealMate</title>
+  <link rel="stylesheet" href="${baseUrl}/widget-assets/meal-planner.css">
+</head>
+<body>
+  <div id="root" data-view="${componentName.replace('mealmate-', '')}" data-widget-id="${componentName}">Loading...</div>
+  <script type="module" src="${baseUrl}/widget-assets/meal-planner.js"></script>
+</body>
+</html>`;
   }
 
   private generateWidgetHtml(componentName: string): string {
