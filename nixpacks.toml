@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_20", "pnpm"]
 cmds = ["pnpm install"]
 
 [phases.build]
-cmds = ["pnpm run build:server"]
+cmds = ["pnpm run build:widget", "pnpm run build:server"]
 
 [start]
 cmd = "pnpm run start"

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,15 +24,42 @@ export interface Widget {
 
 @Injectable()
 export class WidgetsService {
+  private readonly logger = new Logger(WidgetsService.name);
   private widgets: Widget[] = [];
   private widgetsByUri = new Map<string, Widget>();
   private assetsDir: string;
+  private bundledJs: string = '';
+  private bundledCss: string = '';
 
   constructor() {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    this.assetsDir = path.resolve(__dirname, '..', '..', '..', '..', 'widget', 'dist', 'assets');
+    // Assets are built to the root /assets folder in the monorepo
+    // From: apps/server/dist/mcp/widgets.service.js
+    // To: assets/
+    this.assetsDir = path.resolve(__dirname, '..', '..', '..', '..', 'assets');
 
+    this.logger.log(`Looking for widget assets in: ${this.assetsDir}`);
+    this.loadBundledAssets();
     this.initializeWidgets();
+  }
+
+  private loadBundledAssets() {
+    const jsPath = path.join(this.assetsDir, 'meal-planner.js');
+    const cssPath = path.join(this.assetsDir, 'meal-planner.css');
+
+    if (fs.existsSync(jsPath)) {
+      this.bundledJs = fs.readFileSync(jsPath, 'utf8');
+      this.logger.log(`Loaded widget JS bundle: ${this.bundledJs.length} bytes`);
+    } else {
+      this.logger.warn(`Widget JS bundle not found at ${jsPath}`);
+    }
+
+    if (fs.existsSync(cssPath)) {
+      this.bundledCss = fs.readFileSync(cssPath, 'utf8');
+      this.logger.log(`Loaded widget CSS bundle: ${this.bundledCss.length} bytes`);
+    } else {
+      this.logger.warn(`Widget CSS bundle not found at ${cssPath}`);
+    }
   }
 
   private initializeWidgets() {
@@ -113,29 +140,59 @@ export class WidgetsService {
   }
 
   private readWidgetHtml(componentName: string): string {
-    if (!fs.existsSync(this.assetsDir)) {
-      // During development, return placeholder
-      return `<!DOCTYPE html><html><body><div id="root">Widget ${componentName} - Build required</div></body></html>`;
+    // If we have bundled assets, generate HTML dynamically
+    if (this.bundledJs && this.bundledCss) {
+      return this.generateWidgetHtml(componentName);
     }
 
-    const directPath = path.join(this.assetsDir, `${componentName}.html`);
+    // Fallback: look for pre-built HTML files
+    if (fs.existsSync(this.assetsDir)) {
+      const directPath = path.join(this.assetsDir, `${componentName}.html`);
+      if (fs.existsSync(directPath)) {
+        return fs.readFileSync(directPath, 'utf8');
+      }
 
-    if (fs.existsSync(directPath)) {
-      return fs.readFileSync(directPath, 'utf8');
+      // Look for versioned file
+      const candidates = fs
+        .readdirSync(this.assetsDir)
+        .filter((file) => file.startsWith(`${componentName}-`) && file.endsWith('.html'))
+        .sort();
+
+      const fallback = candidates[candidates.length - 1];
+      if (fallback) {
+        return fs.readFileSync(path.join(this.assetsDir, fallback), 'utf8');
+      }
     }
 
-    // Look for versioned file
-    const candidates = fs
-      .readdirSync(this.assetsDir)
-      .filter((file) => file.startsWith(`${componentName}-`) && file.endsWith('.html'))
-      .sort();
+    return `<!DOCTYPE html><html><body><div id="root">Widget ${componentName} - Build required</div></body></html>`;
+  }
 
-    const fallback = candidates[candidates.length - 1];
-    if (fallback) {
-      return fs.readFileSync(path.join(this.assetsDir, fallback), 'utf8');
-    }
+  private generateWidgetHtml(componentName: string): string {
+    // Map widget ID to the component/view name used in the React app
+    const viewMap: Record<string, string> = {
+      'mealmate-dashboard': 'dashboard',
+      'mealmate-recipes': 'recipes',
+      'mealmate-recipe-detail': 'recipe-detail',
+      'mealmate-meal-plan': 'meal-plan',
+      'mealmate-shopping-list': 'shopping-list',
+      'mealmate-settings': 'settings',
+    };
 
-    return `<!DOCTYPE html><html><body><div id="root">Widget ${componentName} not found</div></body></html>`;
+    const view = viewMap[componentName] || 'dashboard';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MealMate</title>
+  <style>${this.bundledCss}</style>
+</head>
+<body>
+  <div id="root" data-view="${view}" data-widget-id="${componentName}"></div>
+  <script type="module">${this.bundledJs}</script>
+</body>
+</html>`;
   }
 
   getWidgetMeta(widget: Widget): Record<string, unknown> {
