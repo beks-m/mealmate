@@ -111,7 +111,7 @@ export class ShoppingListsService {
         const existing = ingredientMap.get(key);
 
         if (existing) {
-          existing.amount += ingredient.amount;
+          existing.amount += ingredient.quantity;
           if (!existing.recipe_ids.includes(recipeId)) {
             existing.recipe_ids.push(recipeId);
           }
@@ -119,7 +119,7 @@ export class ShoppingListsService {
           ingredientMap.set(key, {
             id: crypto.randomUUID(),
             name: ingredient.name,
-            amount: ingredient.amount,
+            amount: ingredient.quantity,
             unit: ingredient.unit,
             category: categorizeIngredient(ingredient.name),
             checked: false,

@@ -108,6 +108,10 @@ export class McpService implements OnModuleDestroy {
       try {
         const result = await this.toolsService.callTool(request.params.name, request.params.arguments ?? {});
         this.logger.log(`Tool ${request.params.name} completed successfully`);
+        this.logger.log(`Result keys: ${Object.keys(result).join(', ')}`);
+        if (result.structuredContent) {
+          this.logger.log(`structuredContent keys: ${Object.keys(result.structuredContent).join(', ')}`);
+        }
         return result;
       } catch (error) {
         this.logger.error(`Tool ${request.params.name} failed:`, error);

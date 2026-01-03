@@ -1,9 +1,47 @@
+import { useEffect, useCallback } from 'react';
 import { useIntl } from 'react-intl';
 import { useRecipeStore } from '../../stores/recipe-store';
+import type { Recipe } from '@mealmate/shared';
 
 export function RecipeList() {
   const intl = useIntl();
-  const { recipes, isLoading } = useRecipeStore();
+  const { recipes, isLoading, setRecipes, setLoading } = useRecipeStore();
+
+  // Check for toolOutput data - poll since it might not be available immediately
+  // ChatGPT injects window.openai.toolOutput after the widget mounts
+  const checkToolOutput = useCallback(() => {
+    const toolOutput = window.openai?.toolOutput as { recipes?: Recipe[] } | undefined;
+
+    if (toolOutput?.recipes && Array.isArray(toolOutput.recipes)) {
+      setRecipes(toolOutput.recipes);
+      setLoading(false);
+      return true;
+    }
+    return false;
+  }, [setRecipes, setLoading]);
+
+  // Load recipes from window.openai.toolOutput on mount with polling
+  useEffect(() => {
+    // Try immediately
+    if (checkToolOutput()) {
+      return;
+    }
+
+    // Poll for toolOutput (ChatGPT injects it after React mounts)
+    let attempts = 0;
+    const maxAttempts = 20; // 2 seconds total
+    const pollInterval = setInterval(() => {
+      attempts++;
+      if (checkToolOutput() || attempts >= maxAttempts) {
+        clearInterval(pollInterval);
+        if (attempts >= maxAttempts) {
+          setLoading(false);
+        }
+      }
+    }, 100);
+
+    return () => clearInterval(pollInterval);
+  }, [checkToolOutput, setLoading]);
 
   if (isLoading) {
     return (

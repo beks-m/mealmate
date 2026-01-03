@@ -483,7 +483,7 @@ export class ToolsService {
         };
         const recipe = await this.recipesService.create(input);
         return {
-          content: [{ type: 'text', text: `Recipe "${recipe.title}" saved successfully!` }],
+          content: [{ type: 'text', text: `Recipe "${recipe.name}" saved successfully!` }],
           structuredContent: { recipe_id: recipe.id, ...input },
         };
       }
@@ -580,11 +580,19 @@ export class ToolsService {
 
       case 'show_recipes': {
         const input = ShowRecipesSchema.parse(args);
+        // Fetch actual recipes to pass to the widget
+        const recipes = await this.recipesService.findAll({ category: input.category });
+        this.logger.log(`show_recipes: Fetched ${recipes.length} recipes`);
+        if (recipes.length > 0) {
+          this.logger.log(`First recipe: ${JSON.stringify(recipes[0])}`);
+        }
+        // Include embedded resource for ChatGPT to render the widget
+        // structuredContent should be injected into window.openai.toolOutput
         return {
           content: embeddedResource
-            ? [{ type: 'text', text: 'Displaying your recipes.' }, embeddedResource]
-            : [{ type: 'text', text: 'Displaying your recipes.' }],
-          structuredContent: { category: input.category },
+            ? [{ type: 'text' as const, text: `Displaying ${recipes.length} recipes.` }, embeddedResource]
+            : [{ type: 'text' as const, text: `Displaying ${recipes.length} recipes.` }],
+          structuredContent: { recipes, category: input.category },
           _meta: invocationMeta,
         };
       }

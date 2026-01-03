@@ -17,12 +17,24 @@ if (!rootElement) {
 const dataView = rootElement.getAttribute('data-view');
 const isWidgetMode = !!dataView;
 
+// Map view names to initial routes
+const viewToInitialRoute: Record<string, string> = {
+  'dashboard': '/',
+  'recipes': '/recipes',
+  'recipe-detail': '/recipes/detail',
+  'meal-plan': '/meal-plan',
+  'shopping-list': '/shopping',
+  'settings': '/settings',
+};
+
 if (isWidgetMode) {
+  const initialRoute = viewToInitialRoute[dataView] || '/';
+
   // Widget mode: render specific component based on data-view
   createRoot(rootElement).render(
     <StrictMode>
       <AppsSDKUIProvider linkComponent="a">
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[initialRoute]}>
           <I18nProvider>
             <WidgetApp view={dataView} />
           </I18nProvider>
