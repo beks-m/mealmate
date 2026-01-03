@@ -6,11 +6,6 @@ import { McpService } from './mcp.service.js';
 export class McpController {
   constructor(private readonly mcpService: McpService) {}
 
-  // Health check at root
-  @Get()
-  healthCheck() {
-    return { status: 'ok', service: 'mealmate-mcp' };
-  }
 
   // CORS preflight for /mcp
   @Options('mcp')
