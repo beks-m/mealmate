@@ -589,10 +589,16 @@ export class ToolsService {
 
       case 'show_recipe_detail': {
         const input = ShowRecipeDetailSchema.parse(args);
+        const contentArray = embeddedResource
+          ? [{ type: 'text' as const, text: 'Displaying recipe details.' }, embeddedResource]
+          : [{ type: 'text' as const, text: 'Displaying recipe details.' }];
+        this.logger.log(`Content array length: ${contentArray.length}, has embedded resource: ${!!embeddedResource}`);
+        if (embeddedResource) {
+          this.logger.log(`Embedded resource URI: ${embeddedResource.resource.uri}`);
+          this.logger.log(`Embedded resource mimeType: ${embeddedResource.resource.mimeType}`);
+        }
         return {
-          content: embeddedResource
-            ? [{ type: 'text', text: 'Displaying recipe details.' }, embeddedResource]
-            : [{ type: 'text', text: 'Displaying recipe details.' }],
+          content: contentArray,
           structuredContent: { recipe_id: input.recipe_id },
           _meta: invocationMeta,
         };
