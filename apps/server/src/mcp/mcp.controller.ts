@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Req, Res, Query } from '@nestjs/common';
+import { Controller, Get, Post, Options, Req, Res, Query } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { McpService } from './mcp.service.js';
 
@@ -10,6 +10,24 @@ export class McpController {
   @Get()
   healthCheck() {
     return { status: 'ok', service: 'mealmate-mcp' };
+  }
+
+  // CORS preflight for /mcp
+  @Options('mcp')
+  handleMcpOptions(@Res() res: Response) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'content-type');
+    res.status(204).end();
+  }
+
+  // CORS preflight for /mcp/messages
+  @Options('mcp/messages')
+  handleMessagesOptions(@Res() res: Response) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'content-type');
+    res.status(204).end();
   }
 
   // MCP SSE endpoint
