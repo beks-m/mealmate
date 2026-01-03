@@ -15,8 +15,8 @@ export default defineConfig({
     cors: true,
   },
   build: {
-    outDir: '../../assets',
-    emptyOutDir: false,
+    outDir: 'dist/assets',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         'meal-planner': resolve(__dirname, 'src/index.tsx'),

@@ -33,10 +33,10 @@ export class WidgetsService {
 
   constructor() {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    // Assets are built to the root /assets folder in the monorepo
-    // From: apps/server/dist/mcp/widgets.service.js
-    // To: assets/
-    this.assetsDir = path.resolve(__dirname, '..', '..', '..', '..', 'assets');
+    // Widget assets are built to apps/widget/dist/assets/
+    // From: apps/server/dist/mcp/widgets.service.js (4 levels up to apps/)
+    // Then: ../widget/dist/assets/
+    this.assetsDir = path.resolve(__dirname, '..', '..', '..', 'widget', 'dist', 'assets');
 
     this.logger.log(`Looking for widget assets in: ${this.assetsDir}`);
     this.loadBundledAssets();
