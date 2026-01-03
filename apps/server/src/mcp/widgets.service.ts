@@ -63,10 +63,12 @@ export class WidgetsService {
   }
 
   private initializeWidgets() {
+    const baseUrl = process.env.BASE_URL || 'https://mealmate-server-production.up.railway.app';
+
     // Default CSP for all widgets
     const defaultCsp: WidgetCSP = {
-      connect_domains: [process.env.BASE_URL || 'http://localhost:8000'],
-      resource_domains: [],
+      connect_domains: [baseUrl],
+      resource_domains: [baseUrl],
       redirect_domains: [],
     };
 
@@ -179,6 +181,7 @@ export class WidgetsService {
     };
 
     const view = viewMap[componentName] || 'dashboard';
+    const baseUrl = process.env.BASE_URL || 'https://mealmate-server-production.up.railway.app';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -186,11 +189,11 @@ export class WidgetsService {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MealMate</title>
-  <style>${this.bundledCss}</style>
+  <link rel="stylesheet" href="${baseUrl}/widget-assets/meal-planner.css">
 </head>
 <body>
   <div id="root" data-view="${view}" data-widget-id="${componentName}"></div>
-  <script type="module">${this.bundledJs}</script>
+  <script type="module" src="${baseUrl}/widget-assets/meal-planner.js"></script>
 </body>
 </html>`;
   }
