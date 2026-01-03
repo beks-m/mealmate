@@ -103,20 +103,9 @@ interface TextContent {
   text: string;
 }
 
-interface EmbeddedResource {
-  type: 'resource';
-  resource: {
-    uri: string;
-    mimeType: string;
-    text: string;
-  };
-}
-
-type ContentItem = TextContent | EmbeddedResource;
-
 // Define return type for tool calls
 interface ToolResult {
-  content: ContentItem[];
+  content: TextContent[];
   structuredContent: Record<string, unknown>;
   _meta?: Record<string, unknown>;
 }
@@ -428,27 +417,17 @@ export class ToolsService {
 
     this.logger.log(`callTool: ${name}, widgetId: ${widgetId}, widget found: ${!!widget}`);
 
-    // Build embedded resource for widget tools (per MCP spec, goes in content array)
-    let embeddedResource: EmbeddedResource | undefined;
+    // Widget metadata for OpenAI - includes outputTemplate pointing to ui:// URI
+    // ChatGPT will fetch the widget HTML via ReadResource
     let invocationMeta: Record<string, unknown> | undefined;
 
     if (widget) {
+      this.logger.log(`Widget found: ${widget.id}`);
+      this.logger.log(`Widget templateUri: ${widget.templateUri}`);
       this.logger.log(`Widget HTML length: ${widget.html.length}`);
-      this.logger.log(`Widget HTML preview: ${widget.html.substring(0, 200)}...`);
 
-      // Embedded resource goes in content array per MCP specification
-      embeddedResource = {
-        type: 'resource',
-        resource: {
-          uri: widget.templateUri,
-          mimeType: 'text/html+skybridge',
-          text: widget.html,
-        },
-      };
-
-      // Widget metadata for OpenAI
       invocationMeta = this.widgetsService.getWidgetMeta(widget);
-      this.logger.log(`invocationMeta keys: ${Object.keys(invocationMeta).join(', ')}`);
+      this.logger.log(`invocationMeta: ${JSON.stringify(invocationMeta)}`);
     }
 
     switch (name) {
@@ -566,12 +545,10 @@ export class ToolsService {
         };
       }
 
-      // UI tools - include embedded resource in content array per MCP spec
+      // UI tools - ChatGPT fetches widget HTML via ReadResource using the ui:// URI in _meta
       case 'show_dashboard':
         return {
-          content: embeddedResource
-            ? [{ type: 'text', text: 'Displaying your MealMate dashboard.' }, embeddedResource]
-            : [{ type: 'text', text: 'Displaying your MealMate dashboard.' }],
+          content: [{ type: 'text', text: 'Displaying your MealMate dashboard.' }],
           structuredContent: {},
           _meta: invocationMeta,
         };
@@ -579,9 +556,7 @@ export class ToolsService {
       case 'show_recipes': {
         const input = ShowRecipesSchema.parse(args);
         return {
-          content: embeddedResource
-            ? [{ type: 'text', text: 'Displaying your recipes.' }, embeddedResource]
-            : [{ type: 'text', text: 'Displaying your recipes.' }],
+          content: [{ type: 'text', text: 'Displaying your recipes.' }],
           structuredContent: { category: input.category },
           _meta: invocationMeta,
         };
@@ -589,16 +564,8 @@ export class ToolsService {
 
       case 'show_recipe_detail': {
         const input = ShowRecipeDetailSchema.parse(args);
-        const contentArray = embeddedResource
-          ? [{ type: 'text' as const, text: 'Displaying recipe details.' }, embeddedResource]
-          : [{ type: 'text' as const, text: 'Displaying recipe details.' }];
-        this.logger.log(`Content array length: ${contentArray.length}, has embedded resource: ${!!embeddedResource}`);
-        if (embeddedResource) {
-          this.logger.log(`Embedded resource URI: ${embeddedResource.resource.uri}`);
-          this.logger.log(`Embedded resource mimeType: ${embeddedResource.resource.mimeType}`);
-        }
         return {
-          content: contentArray,
+          content: [{ type: 'text', text: 'Displaying recipe details.' }],
           structuredContent: { recipe_id: input.recipe_id },
           _meta: invocationMeta,
         };
@@ -607,9 +574,7 @@ export class ToolsService {
       case 'show_meal_plan': {
         const input = ShowMealPlanSchema.parse(args);
         return {
-          content: embeddedResource
-            ? [{ type: 'text', text: 'Displaying your meal plan.' }, embeddedResource]
-            : [{ type: 'text', text: 'Displaying your meal plan.' }],
+          content: [{ type: 'text', text: 'Displaying your meal plan.' }],
           structuredContent: { meal_plan_id: input.meal_plan_id },
           _meta: invocationMeta,
         };
@@ -618,9 +583,7 @@ export class ToolsService {
       case 'show_shopping_list': {
         const input = ShowShoppingListSchema.parse(args);
         return {
-          content: embeddedResource
-            ? [{ type: 'text', text: 'Displaying your shopping list.' }, embeddedResource]
-            : [{ type: 'text', text: 'Displaying your shopping list.' }],
+          content: [{ type: 'text', text: 'Displaying your shopping list.' }],
           structuredContent: { shopping_list_id: input.shopping_list_id },
           _meta: invocationMeta,
         };

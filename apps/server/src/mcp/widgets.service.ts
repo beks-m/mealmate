@@ -158,10 +158,10 @@ export class WidgetsService {
     ];
 
     for (const def of widgetDefinitions) {
-      // Use real HTTP URL for widget template (ChatGPT can fetch directly)
+      // Use ui:// scheme for widget template (ChatGPT fetches via MCP ReadResource)
       const widget: Widget = {
         ...def,
-        templateUri: `${baseUrl}/widgets/${def.id}`,
+        templateUri: `ui://widget/${def.id}.html`,
         html: this.readWidgetHtml(def.id),
       };
 
@@ -169,7 +169,7 @@ export class WidgetsService {
       this.widgetsByUri.set(widget.templateUri, widget);
     }
 
-    this.logger.log(`Initialized ${this.widgets.length} widgets with HTTP URLs`);
+    this.logger.log(`Initialized ${this.widgets.length} widgets with ui:// URIs`);
   }
 
   private readWidgetHtml(componentName: string): string {
