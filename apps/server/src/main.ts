@@ -1,22 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { json } from 'express';
 
 async function bootstrap() {
-  // Disable default body parsing - MCP SSE transport needs raw stream access
+  // Disable body parsing - MCP SSE transport needs raw stream access
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
-  });
-
-  // Only apply JSON body parsing to non-MCP routes
-  app.use((req: any, res: any, next: any) => {
-    if (req.path.startsWith('/mcp')) {
-      // Skip body parsing for MCP routes - SSEServerTransport needs raw stream
-      next();
-    } else {
-      json()(req, res, next);
-    }
   });
 
   app.enableCors({
