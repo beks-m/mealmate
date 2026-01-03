@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { RecipesService } from '../recipes/recipes.service.js';
@@ -106,6 +106,8 @@ interface ToolResult {
 
 @Injectable()
 export class ToolsService {
+  private readonly logger = new Logger(ToolsService.name);
+
   constructor(
     private readonly recipesService: RecipesService,
     private readonly mealPlansService: MealPlansService,
@@ -404,14 +406,35 @@ export class ToolsService {
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
-    const widget = this.widgetsService.getWidgetById(
-      name.replace('show_', 'mealmate-').replace(/_/g, '-')
-    );
+    const widgetId = name.replace('show_', 'mealmate-').replace(/_/g, '-');
+    const widget = this.widgetsService.getWidgetById(widgetId);
 
-    // Include full widget meta with outputTemplate for ChatGPT to render the widget
-    const invocationMeta: Record<string, unknown> | undefined = widget
-      ? this.widgetsService.getWidgetMeta(widget)
-      : undefined;
+    this.logger.log(`callTool: ${name}, widgetId: ${widgetId}, widget found: ${!!widget}`);
+
+    // Include full widget meta with outputTemplate AND embedded widget resource
+    let invocationMeta: Record<string, unknown> | undefined;
+    if (widget) {
+      this.logger.log(`Widget HTML length: ${widget.html.length}`);
+      this.logger.log(`Widget HTML preview: ${widget.html.substring(0, 200)}...`);
+
+      const widgetMeta = this.widgetsService.getWidgetMeta(widget);
+      // Add embedded widget resource as per OpenAI Apps SDK spec
+      const embeddedResource = {
+        type: 'resource',
+        resource: {
+          uri: widget.templateUri,
+          mimeType: 'text/html+skybridge',
+          text: widget.html,
+          title: widget.title,
+        },
+      };
+      invocationMeta = {
+        ...widgetMeta,
+        'openai.com/widget': embeddedResource,
+        'openai/resultCanProduceWidget': true,
+      };
+      this.logger.log(`invocationMeta keys: ${Object.keys(invocationMeta).join(', ')}`);
+    }
 
     switch (name) {
       case 'save_recipe': {

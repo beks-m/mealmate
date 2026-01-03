@@ -34,11 +34,24 @@ export class WidgetsService {
   constructor() {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     // Widget assets are built to apps/widget/dist/assets/
-    // From: apps/server/dist/mcp/widgets.service.js (4 levels up to apps/)
-    // Then: ../widget/dist/assets/
+    // From: apps/server/dist/mcp/widgets.service.js (3 levels up to apps/)
+    // Then: widget/dist/assets/
     this.assetsDir = path.resolve(__dirname, '..', '..', '..', 'widget', 'dist', 'assets');
 
+    this.logger.log(`__dirname: ${__dirname}`);
     this.logger.log(`Looking for widget assets in: ${this.assetsDir}`);
+    this.logger.log(`Assets dir exists: ${fs.existsSync(this.assetsDir)}`);
+
+    // Also try from process.cwd() as fallback
+    if (!fs.existsSync(this.assetsDir)) {
+      const cwdPath = path.join(process.cwd(), 'apps', 'widget', 'dist', 'assets');
+      this.logger.log(`Trying CWD path: ${cwdPath}`);
+      if (fs.existsSync(cwdPath)) {
+        this.assetsDir = cwdPath;
+        this.logger.log(`Using CWD path for assets`);
+      }
+    }
+
     this.loadBundledAssets();
     this.initializeWidgets();
   }
@@ -47,11 +60,19 @@ export class WidgetsService {
     const jsPath = path.join(this.assetsDir, 'meal-planner.js');
     const cssPath = path.join(this.assetsDir, 'meal-planner.css');
 
+    this.logger.log(`Checking for JS at: ${jsPath}`);
+    this.logger.log(`Checking for CSS at: ${cssPath}`);
+
     if (fs.existsSync(jsPath)) {
       this.bundledJs = fs.readFileSync(jsPath, 'utf8');
       this.logger.log(`Loaded widget JS bundle: ${this.bundledJs.length} bytes`);
     } else {
       this.logger.warn(`Widget JS bundle not found at ${jsPath}`);
+      // List directory contents if it exists
+      if (fs.existsSync(this.assetsDir)) {
+        const files = fs.readdirSync(this.assetsDir);
+        this.logger.log(`Files in assets dir: ${files.join(', ')}`);
+      }
     }
 
     if (fs.existsSync(cssPath)) {
@@ -59,6 +80,13 @@ export class WidgetsService {
       this.logger.log(`Loaded widget CSS bundle: ${this.bundledCss.length} bytes`);
     } else {
       this.logger.warn(`Widget CSS bundle not found at ${cssPath}`);
+    }
+
+    // Log whether we'll use generated HTML or fallback
+    if (this.bundledJs && this.bundledCss) {
+      this.logger.log(`Both bundles loaded - will use generateWidgetHtml()`);
+    } else {
+      this.logger.warn(`Missing bundles - will use fallback HTML`);
     }
   }
 
