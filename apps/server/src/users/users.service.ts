@@ -69,7 +69,7 @@ export class UsersService {
   private dietaryRestrictions: Map<string, string[]> = new Map();
 
   // Default user ID for MVP (no auth)
-  private readonly defaultUserId = 'demo-user';
+  private readonly defaultUserId = '00000000-0000-0000-0000-000000000001';
 
   constructor(private readonly supabase: SupabaseService) {
     // Create a default demo user

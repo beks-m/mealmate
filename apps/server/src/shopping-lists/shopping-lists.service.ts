@@ -138,7 +138,7 @@ export class ShoppingListsService {
 
     const shoppingList: ShoppingList = {
       id: crypto.randomUUID(),
-      user_id: 'demo-user',
+      user_id: '00000000-0000-0000-0000-000000000001',
       meal_plan_id: mealPlanId,
       name: name ?? `Shopping list for ${mealPlan.name}`,
       items,

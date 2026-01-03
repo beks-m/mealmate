@@ -70,7 +70,7 @@ export class MealPlansService {
 
     const mealPlan: MealPlan = {
       id: crypto.randomUUID(),
-      user_id: 'demo-user',
+      user_id: '00000000-0000-0000-0000-000000000001',
       name: input.name,
       start_date: input.start_date,
       end_date: endDate.toISOString().split('T')[0] as string,

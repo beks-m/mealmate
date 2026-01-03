@@ -54,7 +54,7 @@ export class RecipesService {
   async create(input: CreateRecipeInput): Promise<Recipe> {
     const recipe: Recipe = {
       id: crypto.randomUUID(),
-      user_id: 'demo-user', // TODO: Get from auth context
+      user_id: '00000000-0000-0000-0000-000000000001', // TODO: Get from auth context
       ...input,
       tags: input.tags ?? [],
       is_favorite: false,
