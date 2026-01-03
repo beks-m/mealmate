@@ -3,10 +3,8 @@ import { AppModule } from './app.module.js';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  // Disable body parsing - MCP SSE transport needs raw stream access
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bodyParser: false,
-  });
+  // StreamableHTTPServerTransport accepts parsed body, so enable body parsing
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableCors({
     origin: '*',

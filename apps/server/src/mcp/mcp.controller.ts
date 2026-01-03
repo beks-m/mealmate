@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Options, Req, Res, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Options, Req, Res, Logger, All } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { McpService } from './mcp.service.js';
 
@@ -22,47 +22,20 @@ export class McpController {
   handleMcpOptions(@Res() res: Response) {
     this.logger.log('OPTIONS /mcp called');
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'content-type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'content-type, mcp-session-id');
+    res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
     res.status(204).end();
   }
 
-  // CORS preflight for /mcp/messages
-  @Options('mcp/messages')
-  handleMessagesOptions(@Res() res: Response) {
-    this.logger.log('OPTIONS /mcp/messages called');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'content-type');
-    res.status(204).end();
-  }
+  // Unified MCP endpoint - handles all methods
+  @All('mcp')
+  async handleMcp(@Req() req: Request, @Res() res: Response) {
+    // Skip OPTIONS - handled above
+    if (req.method === 'OPTIONS') return;
 
-  // MCP SSE endpoint
-  @Get('mcp')
-  async handleSse(@Req() req: Request, @Res() res: Response) {
-    this.logger.log('=== GET /mcp (SSE) called ===');
-    this.logger.log(`Request URL: ${req.url}`);
-    this.logger.log(`Request headers: ${JSON.stringify(req.headers)}`);
-    await this.mcpService.handleSseConnection(res);
-  }
-
-  // MCP messages endpoint
-  @Post('mcp/messages')
-  async handleMessage(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Query('sessionId') sessionId: string,
-  ) {
-    this.logger.log('=== POST /mcp/messages called ===');
-    this.logger.log(`Session ID from query: ${sessionId}`);
-    this.logger.log(`Full URL: ${req.url}`);
-
-    if (!sessionId) {
-      this.logger.error('Missing sessionId query parameter');
-      res.status(400).send('Missing sessionId query parameter');
-      return;
-    }
-
-    await this.mcpService.handlePostMessage(req, res, sessionId);
+    this.logger.log(`=== ${req.method} /mcp called ===`);
+    this.logger.log(`Headers: ${JSON.stringify(req.headers)}`);
+    await this.mcpService.handleRequest(req, res);
   }
 }

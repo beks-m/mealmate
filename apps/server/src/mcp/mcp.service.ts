@@ -1,20 +1,22 @@
 import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
   CallToolRequestSchema,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
+  isInitializeRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ToolsService } from './tools.service.js';
 import { WidgetsService } from './widgets.service.js';
+import { randomUUID } from 'crypto';
 
 interface SessionRecord {
   server: Server;
-  transport: SSEServerTransport;
+  transport: StreamableHTTPServerTransport;
 }
 
 @Injectable()
@@ -117,89 +119,97 @@ export class McpService implements OnModuleDestroy {
     return server;
   }
 
-  async handleSseConnection(res: Response) {
-    this.logger.log('=== SSE Connection Started ===');
-    this.logger.log(`Active sessions before: ${this.sessions.size}`);
+  async handleRequest(req: Request, res: Response) {
+    this.logger.log(`=== MCP Request: ${req.method} ===`);
 
+    // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('X-Accel-Buffering', 'no');
+    res.setHeader('Access-Control-Allow-Headers', 'content-type, mcp-session-id');
+    res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
 
-    const server = this.createMcpServer();
-    const transport = new SSEServerTransport('/mcp/messages', res);
-    const sessionId = transport.sessionId;
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    this.logger.log(`Session ID from header: ${sessionId || 'none'}`);
 
-    this.logger.log(`New session created: ${sessionId}`);
-    this.sessions.set(sessionId, { server, transport });
-
-    // Keep-alive ping every 25 seconds to prevent proxy timeouts
-    const keepAlive = setInterval(() => {
-      if (!res.writableEnded) {
-        res.write(':keepalive\n\n');
-        this.logger.debug(`Keepalive sent for session: ${sessionId}`);
+    // Handle GET requests (SSE stream for notifications)
+    if (req.method === 'GET') {
+      if (!sessionId || !this.sessions.has(sessionId)) {
+        this.logger.error('GET request without valid session');
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Invalid session' },
+          id: null,
+        });
+        return;
       }
-    }, 25000);
 
-    let isClosed = false;
-    transport.onclose = async () => {
-      if (isClosed) return; // Prevent infinite recursion
-      isClosed = true;
-      this.logger.log(`SSE connection closed for session: ${sessionId}`);
-      clearInterval(keepAlive);
-      this.sessions.delete(sessionId);
-      try {
-        await server.close();
-      } catch (error) {
-        this.logger.error(`Error closing server for session ${sessionId}:`, error);
-      }
-    };
-
-    transport.onerror = (error) => {
-      this.logger.error(`SSE transport error for session ${sessionId}:`, error);
-      clearInterval(keepAlive);
-    };
-
-    try {
-      this.logger.log(`Connecting server to transport for session: ${sessionId}`);
-      await server.connect(transport);
-      this.logger.log(`Server connected successfully for session: ${sessionId}`);
-    } catch (error) {
-      clearInterval(keepAlive);
-      this.sessions.delete(sessionId);
-      this.logger.error(`Failed to start SSE session ${sessionId}:`, error);
-      if (!res.headersSent) {
-        res.status(500).send('Failed to establish SSE connection');
-      }
-    }
-  }
-
-  async handlePostMessage(req: Request, res: Response, sessionId: string) {
-    this.logger.log(`=== POST Message Received ===`);
-    this.logger.log(`Session ID: ${sessionId}`);
-    this.logger.log(`Request headers: ${JSON.stringify(req.headers)}`);
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'content-type');
-
-    const session = this.sessions.get(sessionId);
-
-    if (!session) {
-      this.logger.error(`Session not found: ${sessionId}`);
-      this.logger.log(`Active sessions: ${Array.from(this.sessions.keys()).join(', ')}`);
-      res.status(404).send('Unknown session');
+      const session = this.sessions.get(sessionId)!;
+      await session.transport.handleRequest(req, res);
       return;
     }
 
-    this.logger.log(`Session found, processing message...`);
-
-    try {
-      await session.transport.handlePostMessage(req, res);
-      this.logger.log(`Message processed successfully for session: ${sessionId}`);
-    } catch (error) {
-      this.logger.error(`Failed to process message for session ${sessionId}:`, error);
-      if (!res.headersSent) {
-        res.status(500).send('Failed to process message');
+    // Handle DELETE requests (close session)
+    if (req.method === 'DELETE') {
+      if (sessionId && this.sessions.has(sessionId)) {
+        const session = this.sessions.get(sessionId)!;
+        await session.transport.handleRequest(req, res);
+      } else {
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Invalid session' },
+          id: null,
+        });
       }
+      return;
     }
+
+    // Handle POST requests
+    if (req.method === 'POST') {
+      let transport: StreamableHTTPServerTransport;
+
+      if (sessionId && this.sessions.has(sessionId)) {
+        // Reuse existing session
+        this.logger.log(`Reusing existing session: ${sessionId}`);
+        transport = this.sessions.get(sessionId)!.transport;
+      } else if (!sessionId && isInitializeRequest(req.body)) {
+        // New session initialization
+        this.logger.log('Creating new session for initialize request');
+
+        const server = this.createMcpServer();
+
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (id) => {
+            this.logger.log(`Session initialized and stored: ${id}`);
+            this.sessions.set(id, { server, transport });
+          },
+        });
+
+        transport.onclose = () => {
+          const sid = transport.sessionId;
+          if (sid) {
+            this.logger.log(`Session closed: ${sid}`);
+            this.sessions.delete(sid);
+          }
+        };
+
+        await server.connect(transport);
+      } else {
+        // Invalid request - no session and not initialize
+        this.logger.error('POST request without session and not initialize');
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Bad Request: No valid session' },
+          id: null,
+        });
+        return;
+      }
+
+      // Handle the request with parsed body
+      await transport.handleRequest(req, res, req.body);
+      return;
+    }
+
+    // Unknown method
+    res.status(405).send('Method not allowed');
   }
 }
