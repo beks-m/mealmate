@@ -33,6 +33,11 @@ export function RecipeDetail() {
     return false;
   }, [setRecipes]);
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Load recipes from window.openai.toolOutput on mount via event listener
   useEffect(() => {
     // If we already have recipes, don't load

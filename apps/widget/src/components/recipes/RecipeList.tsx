@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,25 +6,13 @@ import { useRecipeStore } from '../../stores/recipe-store';
 import { SET_GLOBALS_EVENT_TYPE } from '../../types/openai';
 import type { Recipe } from '@mealmate/shared';
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.06,
-    },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 12, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } },
-};
+const RECIPES_PER_PAGE = 10;
 
 export function RecipeList() {
   const intl = useIntl();
   const { recipes, isLoading, setRecipes, setLoading } = useRecipeStore();
   const dataLoadedRef = useRef(false);
+  const [displayCount, setDisplayCount] = useState(RECIPES_PER_PAGE);
 
   // Check for toolOutput data - poll since it might not be available immediately
   // ChatGPT injects window.openai.toolOutput after the widget mounts
@@ -112,15 +100,36 @@ export function RecipeList() {
     );
   }
 
+  const visibleRecipes = recipes.slice(0, displayCount);
+  const hasMore = displayCount < recipes.length;
+
+  const loadMore = () => {
+    setDisplayCount((prev) => prev + RECIPES_PER_PAGE);
+  };
+
   return (
     <div className="space-y-4">
       <Header intl={intl} count={recipes.length} />
 
       <div className="space-y-3">
-        {recipes.map((recipe) => (
+        {visibleRecipes.map((recipe) => (
           <RecipeCard key={recipe.id} recipe={recipe} />
         ))}
       </div>
+
+      {hasMore && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={loadMore}
+          className="w-full py-2.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/15 rounded-xl transition-colors"
+        >
+          {intl.formatMessage(
+            { id: 'recipes.loadMore', defaultMessage: 'Load more ({remaining} remaining)' },
+            { remaining: recipes.length - displayCount }
+          )}
+        </motion.button>
+      )}
     </div>
   );
 }

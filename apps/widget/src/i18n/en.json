@@ -20,6 +20,7 @@
 
   "recipes.empty": "No recipes saved yet",
   "recipes.emptyHint": "Ask ChatGPT to generate a recipe and save it",
+  "recipes.loadMore": "Load more ({remaining} remaining)",
   "recipe.calories": "{count} cal",
   "recipe.servings": "{count, plural, one {# serving} other {# servings}}",
   "recipe.prepTime": "{minutes} min prep",

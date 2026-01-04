@@ -20,6 +20,7 @@
 
   "recipes.empty": "Нет сохранённых рецептов",
   "recipes.emptyHint": "Попросите ChatGPT сгенерировать рецепт и сохраните его",
+  "recipes.loadMore": "Показать ещё ({remaining} осталось)",
   "recipe.calories": "{count} ккал",
   "recipe.servings": "{count, plural, one {# порция} few {# порции} many {# порций} other {# порций}}",
   "recipe.prepTime": "{minutes} мин подготовка",
