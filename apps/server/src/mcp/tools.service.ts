@@ -419,6 +419,23 @@ export class ToolsService {
           readOnlyHint: true,
         },
       },
+      {
+        name: 'show_settings',
+        title: 'Show Settings',
+        description: 'Display user settings for dietary goals and preferences.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            section: { type: 'string', description: 'Settings section to display (optional, shows all if omitted)' },
+          },
+        },
+        _meta: this.widgetsService.getWidgetMeta(this.widgetsService.getWidgetById('mealmate-settings')!),
+        annotations: {
+          destructiveHint: false,
+          openWorldHint: false,
+          readOnlyHint: true,
+        },
+      },
     ];
   }
 
@@ -482,9 +499,21 @@ export class ToolsService {
           tags: parsed.tags,
         };
         const recipe = await this.recipesService.create(input);
+
+        // Use result widget
+        const resultWidget = this.widgetsService.getWidgetById('mealmate-recipe-result');
+        const resultMeta = resultWidget ? this.widgetsService.getWidgetMeta(resultWidget) : {};
+        const resultResource = resultWidget ? {
+          type: 'resource' as const,
+          resource: { uri: resultWidget.templateUri, text: resultWidget.html, mimeType: 'text/html+skybridge' },
+        } : null;
+
         return {
-          content: [{ type: 'text', text: `Recipe "${recipe.name}" saved successfully!` }],
-          structuredContent: { recipe_id: recipe.id, ...input },
+          content: resultResource
+            ? [{ type: 'text', text: `Recipe "${recipe.name}" saved successfully!` }, resultResource]
+            : [{ type: 'text', text: `Recipe "${recipe.name}" saved successfully!` }],
+          structuredContent: { recipe, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: resultMeta,
         };
       }
 
@@ -514,18 +543,42 @@ export class ToolsService {
           })),
         };
         const mealPlan = await this.mealPlansService.create(input);
+
+        // Use result widget
+        const resultWidget = this.widgetsService.getWidgetById('mealmate-meal-plan-result');
+        const resultMeta = resultWidget ? this.widgetsService.getWidgetMeta(resultWidget) : {};
+        const resultResource = resultWidget ? {
+          type: 'resource' as const,
+          resource: { uri: resultWidget.templateUri, text: resultWidget.html, mimeType: 'text/html+skybridge' },
+        } : null;
+
         return {
-          content: [{ type: 'text', text: `Meal plan "${mealPlan.name}" created successfully!` }],
-          structuredContent: { meal_plan_id: mealPlan.id, ...input },
+          content: resultResource
+            ? [{ type: 'text', text: `Meal plan "${mealPlan.name}" created successfully!` }, resultResource]
+            : [{ type: 'text', text: `Meal plan "${mealPlan.name}" created successfully!` }],
+          structuredContent: { mealPlan, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: resultMeta,
         };
       }
 
       case 'generate_shopping_list': {
         const input = GenerateShoppingListSchema.parse(args);
         const list = await this.shoppingListsService.generateFromMealPlan(input.meal_plan_id, input.name);
+
+        // Use result widget
+        const resultWidget = this.widgetsService.getWidgetById('mealmate-shopping-list-result');
+        const resultMeta = resultWidget ? this.widgetsService.getWidgetMeta(resultWidget) : {};
+        const resultResource = resultWidget ? {
+          type: 'resource' as const,
+          resource: { uri: resultWidget.templateUri, text: resultWidget.html, mimeType: 'text/html+skybridge' },
+        } : null;
+
         return {
-          content: [{ type: 'text', text: `Shopping list generated with ${list.items.length} items.` }],
-          structuredContent: { shopping_list_id: list.id, items: list.items },
+          content: resultResource
+            ? [{ type: 'text', text: `Shopping list generated with ${list.items.length} items.` }, resultResource]
+            : [{ type: 'text', text: `Shopping list generated with ${list.items.length} items.` }],
+          structuredContent: { shoppingList: list, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: resultMeta,
         };
       }
 
@@ -562,9 +615,21 @@ export class ToolsService {
       case 'update_user_goals': {
         const input = UpdateUserGoalsSchema.parse(args);
         const updated = await this.usersService.updateGoals(input);
+
+        // Use result widget
+        const resultWidget = this.widgetsService.getWidgetById('mealmate-goals-result');
+        const resultMeta = resultWidget ? this.widgetsService.getWidgetMeta(resultWidget) : {};
+        const resultResource = resultWidget ? {
+          type: 'resource' as const,
+          resource: { uri: resultWidget.templateUri, text: resultWidget.html, mimeType: 'text/html+skybridge' },
+        } : null;
+
         return {
-          content: [{ type: 'text', text: 'Goals updated successfully.' }],
-          structuredContent: { goals: updated },
+          content: resultResource
+            ? [{ type: 'text', text: 'Goals updated successfully.' }, resultResource]
+            : [{ type: 'text', text: 'Goals updated successfully.' }],
+          structuredContent: { goals: updated, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: resultMeta,
         };
       }
 
@@ -611,22 +676,49 @@ export class ToolsService {
 
       case 'show_meal_plan': {
         const input = ShowMealPlanSchema.parse(args);
+        // Fetch actual meal plan data - by ID if provided, otherwise get current
+        const mealPlan = input.meal_plan_id
+          ? await this.mealPlansService.findById(input.meal_plan_id)
+          : await this.mealPlansService.findCurrent();
+        this.logger.log(`show_meal_plan: Fetched meal plan ${mealPlan?.id ?? 'none'}`);
         return {
           content: embeddedResource
-            ? [{ type: 'text', text: 'Displaying your meal plan.' }, embeddedResource]
-            : [{ type: 'text', text: 'Displaying your meal plan.' }],
-          structuredContent: { meal_plan_id: input.meal_plan_id, _widgetVersion: this.widgetsService.getVersion() },
+            ? [{ type: 'text', text: mealPlan ? 'Displaying your meal plan.' : 'No meal plan found.' }, embeddedResource]
+            : [{ type: 'text', text: mealPlan ? 'Displaying your meal plan.' : 'No meal plan found.' }],
+          structuredContent: { mealPlan, meal_plan_id: mealPlan?.id, _widgetVersion: this.widgetsService.getVersion() },
           _meta: invocationMeta,
         };
       }
 
       case 'show_shopping_list': {
         const input = ShowShoppingListSchema.parse(args);
+        // Fetch actual shopping list data - by ID if provided, otherwise get most recent
+        let shoppingList = null;
+        if (input.shopping_list_id) {
+          shoppingList = await this.shoppingListsService.findById(input.shopping_list_id);
+        } else {
+          const lists = await this.shoppingListsService.findAll();
+          shoppingList = lists[0] ?? null; // Most recent
+        }
+        this.logger.log(`show_shopping_list: Fetched shopping list ${shoppingList?.id ?? 'none'} with ${shoppingList?.items?.length ?? 0} items`);
         return {
           content: embeddedResource
-            ? [{ type: 'text', text: 'Displaying your shopping list.' }, embeddedResource]
-            : [{ type: 'text', text: 'Displaying your shopping list.' }],
-          structuredContent: { shopping_list_id: input.shopping_list_id, _widgetVersion: this.widgetsService.getVersion() },
+            ? [{ type: 'text', text: shoppingList ? 'Displaying your shopping list.' : 'No shopping list found.' }, embeddedResource]
+            : [{ type: 'text', text: shoppingList ? 'Displaying your shopping list.' : 'No shopping list found.' }],
+          structuredContent: { shoppingList, shopping_list_id: shoppingList?.id, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: invocationMeta,
+        };
+      }
+
+      case 'show_settings': {
+        // Fetch user profile for settings display
+        const profile = await this.usersService.getProfile();
+        this.logger.log(`show_settings: Fetched user profile`);
+        return {
+          content: embeddedResource
+            ? [{ type: 'text', text: 'Displaying your settings.' }, embeddedResource]
+            : [{ type: 'text', text: 'Displaying your settings.' }],
+          structuredContent: { profile, _widgetVersion: this.widgetsService.getVersion() },
           _meta: invocationMeta,
         };
       }

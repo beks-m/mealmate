@@ -1,7 +1,7 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useIntl } from 'react-intl';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRecipeStore } from '../../stores/recipe-store';
 import { SET_GLOBALS_EVENT_TYPE } from '../../types/openai';
 import type { Recipe } from '@mealmate/shared';
@@ -14,10 +14,13 @@ const fadeIn = {
 
 export function RecipeDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const intl = useIntl();
-  const { recipes, setRecipes } = useRecipeStore();
+  const { recipes, setRecipes, toggleFavorite, removeRecipe } = useRecipeStore();
   const [isLoading, setIsLoading] = useState(recipes.length === 0);
   const dataLoadedRef = useRef(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [adjustedServings, setAdjustedServings] = useState<number | null>(null);
 
   // Check for toolOutput data - poll since it might not be available immediately
   // ChatGPT injects window.openai.toolOutput after the widget mounts
@@ -66,6 +69,33 @@ export function RecipeDetail() {
 
   const recipe = recipes.find((r) => r.id === id);
 
+  // Initialize adjustedServings when recipe loads
+  useEffect(() => {
+    if (recipe && adjustedServings === null) {
+      setAdjustedServings(recipe.servings);
+    }
+  }, [recipe, adjustedServings]);
+
+  // Calculate multiplier for ingredient/nutrition scaling
+  const servingsMultiplier = useMemo(() => {
+    if (!recipe || adjustedServings === null) return 1;
+    return adjustedServings / recipe.servings;
+  }, [recipe, adjustedServings]);
+
+  // Scale a number by the servings multiplier
+  const scaleValue = (value: number) => {
+    const scaled = value * servingsMultiplier;
+    return scaled % 1 === 0 ? scaled : Number(scaled.toFixed(1));
+  };
+
+  // Handle delete
+  const handleDelete = () => {
+    if (id) {
+      removeRecipe(id);
+      navigate('/recipes');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-5">
@@ -112,13 +142,45 @@ export function RecipeDetail() {
     <div className="space-y-5">
       {/* Back button and header */}
       <motion.div {...fadeIn}>
-        <Link
-          to="/recipes"
-          className="inline-flex items-center gap-1 text-sm text-tertiary hover:text-secondary transition-colors mb-2"
-        >
-          <ChevronLeftIcon className="size-4" />
-          <span>{intl.formatMessage({ id: 'recipe.backToList', defaultMessage: 'Back' })}</span>
-        </Link>
+        <div className="flex items-center justify-between mb-2">
+          <Link
+            to="/recipes"
+            className="inline-flex items-center gap-1 text-sm text-tertiary hover:text-secondary transition-colors"
+          >
+            <ChevronLeftIcon className="size-4" />
+            <span>{intl.formatMessage({ id: 'recipe.backToList', defaultMessage: 'Back' })}</span>
+          </Link>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => id && toggleFavorite(id)}
+              className={`p-1.5 rounded-lg transition-colors ${
+                recipe.isFavorite
+                  ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20'
+                  : 'text-tertiary hover:text-red-500 hover:bg-surface-hover'
+              }`}
+              title={intl.formatMessage({ id: recipe.isFavorite ? 'recipe.unfavorite' : 'recipe.favorite', defaultMessage: recipe.isFavorite ? 'Remove from favorites' : 'Add to favorites' })}
+            >
+              <HeartIcon className="size-4" filled={recipe.isFavorite} />
+            </button>
+            <Link
+              to={`/recipes/${id}/edit`}
+              className="p-1.5 text-tertiary hover:text-primary hover:bg-surface-hover rounded-lg transition-colors"
+              title={intl.formatMessage({ id: 'recipe.edit', defaultMessage: 'Edit' })}
+            >
+              <EditIcon className="size-4" />
+            </Link>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-1.5 text-tertiary hover:text-red-500 hover:bg-surface-hover rounded-lg transition-colors"
+              title={intl.formatMessage({ id: 'recipe.delete', defaultMessage: 'Delete' })}
+            >
+              <TrashIcon className="size-4" />
+            </button>
+          </div>
+        </div>
+
         <h1 className="text-xl font-semibold text-primary">
           {recipe.name}
         </h1>
@@ -127,7 +189,82 @@ export function RecipeDetail() {
             {recipe.description}
           </p>
         )}
+
+        {/* Serving size adjuster */}
+        <div className="mt-3 flex items-center gap-3">
+          <span className="text-sm text-tertiary">
+            {intl.formatMessage({ id: 'recipe.servings', defaultMessage: 'Servings' })}:
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAdjustedServings(Math.max(1, (adjustedServings ?? recipe.servings) - 1))}
+              disabled={(adjustedServings ?? recipe.servings) <= 1}
+              className="size-7 flex items-center justify-center rounded-lg border border-subtle bg-surface hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <MinusIcon className="size-3.5 text-secondary" />
+            </button>
+            <span className="min-w-[2rem] text-center text-base font-semibold text-primary">
+              {adjustedServings ?? recipe.servings}
+            </span>
+            <button
+              onClick={() => setAdjustedServings((adjustedServings ?? recipe.servings) + 1)}
+              className="size-7 flex items-center justify-center rounded-lg border border-subtle bg-surface hover:bg-surface-hover transition-colors"
+            >
+              <PlusIcon className="size-3.5 text-secondary" />
+            </button>
+          </div>
+          {adjustedServings !== recipe.servings && (
+            <button
+              onClick={() => setAdjustedServings(recipe.servings)}
+              className="text-xs text-link hover:underline"
+            >
+              {intl.formatMessage({ id: 'recipe.resetServings', defaultMessage: 'Reset' })}
+            </button>
+          )}
+        </div>
       </motion.div>
+
+      {/* Delete confirmation dialog */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-xs p-4 bg-surface border border-subtle rounded-xl shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-base font-semibold text-primary mb-2">
+                {intl.formatMessage({ id: 'recipe.deleteConfirmTitle', defaultMessage: 'Delete Recipe?' })}
+              </h3>
+              <p className="text-sm text-secondary mb-4">
+                {intl.formatMessage({ id: 'recipe.deleteConfirmMessage', defaultMessage: 'This action cannot be undone.' })}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-2 text-sm font-medium text-secondary bg-surface-hover hover:bg-surface-active rounded-lg transition-colors"
+                >
+                  {intl.formatMessage({ id: 'common.cancel', defaultMessage: 'Cancel' })}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                >
+                  {intl.formatMessage({ id: 'recipe.delete', defaultMessage: 'Delete' })}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Nutrition Grid */}
       <motion.div
@@ -138,25 +275,25 @@ export function RecipeDetail() {
       >
         <NutritionCard
           icon={<FlameIcon className="size-4" />}
-          value={`${recipe.nutrition.calories}`}
+          value={`${scaleValue(recipe.nutrition.calories)}`}
           label={intl.formatMessage({ id: 'nutrition.calories' })}
           color="red"
         />
         <NutritionCard
           icon={<ProteinIcon className="size-4" />}
-          value={`${recipe.nutrition.proteinG}g`}
+          value={`${scaleValue(recipe.nutrition.proteinG)}g`}
           label={intl.formatMessage({ id: 'nutrition.protein' })}
           color="blue"
         />
         <NutritionCard
           icon={<CarbsIcon className="size-4" />}
-          value={`${recipe.nutrition.carbsG}g`}
+          value={`${scaleValue(recipe.nutrition.carbsG)}g`}
           label={intl.formatMessage({ id: 'nutrition.carbs' })}
           color="amber"
         />
         <NutritionCard
           icon={<FatIcon className="size-4" />}
-          value={`${recipe.nutrition.fatG}g`}
+          value={`${scaleValue(recipe.nutrition.fatG)}g`}
           label={intl.formatMessage({ id: 'nutrition.fat' })}
           color="purple"
         />
@@ -181,7 +318,7 @@ export function RecipeDetail() {
                 <span className="flex-shrink-0 size-1.5 bg-primary/40 rounded-full" />
                 <span>
                   <span className="font-medium text-primary">
-                    {ingredient.quantity} {ingredient.unit}
+                    {scaleValue(ingredient.quantity)} {ingredient.unit}
                   </span>{' '}
                   {ingredient.name}
                 </span>
@@ -292,6 +429,51 @@ function FatIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function HeartIcon({ className, filled }: { className?: string; filled?: boolean }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+    </svg>
+  );
+}
+
+function EditIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3,6 5,6 21,6" />
+      <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  );
+}
+
+function MinusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   );
 }

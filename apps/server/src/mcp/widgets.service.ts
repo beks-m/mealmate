@@ -176,6 +176,43 @@ export class WidgetsService {
         prefersBorder: false,
         csp: defaultCsp,
       },
+      // Result widgets for action tools
+      {
+        id: 'mealmate-recipe-result',
+        title: 'Recipe Saved',
+        description: 'Confirmation card for a saved recipe',
+        invoking: 'Saving your recipe...',
+        invoked: 'Recipe saved successfully!',
+        prefersBorder: true,
+        csp: defaultCsp,
+      },
+      {
+        id: 'mealmate-meal-plan-result',
+        title: 'Meal Plan Created',
+        description: 'Confirmation card for a created meal plan',
+        invoking: 'Creating your meal plan...',
+        invoked: 'Meal plan created successfully!',
+        prefersBorder: true,
+        csp: defaultCsp,
+      },
+      {
+        id: 'mealmate-shopping-list-result',
+        title: 'Shopping List Generated',
+        description: 'Confirmation card for a generated shopping list',
+        invoking: 'Generating your shopping list...',
+        invoked: 'Shopping list ready!',
+        prefersBorder: true,
+        csp: defaultCsp,
+      },
+      {
+        id: 'mealmate-goals-result',
+        title: 'Goals Updated',
+        description: 'Confirmation card for updated dietary goals',
+        invoking: 'Updating your goals...',
+        invoked: 'Your goals have been updated!',
+        prefersBorder: true,
+        csp: defaultCsp,
+      },
     ];
 
     for (const def of widgetDefinitions) {
@@ -249,6 +286,11 @@ export class WidgetsService {
       'mealmate-meal-plan': 'meal-plan',
       'mealmate-shopping-list': 'shopping-list',
       'mealmate-settings': 'settings',
+      // Result widgets
+      'mealmate-recipe-result': 'recipe-result',
+      'mealmate-meal-plan-result': 'meal-plan-result',
+      'mealmate-shopping-list-result': 'shopping-list-result',
+      'mealmate-goals-result': 'goals-result',
     };
 
     const view = viewMap[componentName] || 'dashboard';

@@ -1,4 +1,5 @@
 import { useIntl } from 'react-intl';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const container = {
@@ -41,6 +42,7 @@ export function Settings() {
       >
         {/* Dietary Goals */}
         <SettingsCard
+          to="/settings/dietary-goals"
           icon={<TargetIcon className="size-5" />}
           title={intl.formatMessage({ id: 'settings.dietaryGoals' })}
           description={intl.formatMessage({ id: 'settings.dietaryGoalsDescription' })}
@@ -49,6 +51,7 @@ export function Settings() {
 
         {/* Family Members */}
         <SettingsCard
+          to="/settings/family-members"
           icon={<UsersIcon className="size-5" />}
           title={intl.formatMessage({ id: 'settings.familyMembers' })}
           description={intl.formatMessage({ id: 'settings.familyMembersDescription' })}
@@ -57,6 +60,7 @@ export function Settings() {
 
         {/* Language */}
         <SettingsCard
+          to="/settings/language"
           icon={<GlobeIcon className="size-5" />}
           title={intl.formatMessage({ id: 'settings.language' })}
           description={intl.formatMessage({ id: 'settings.languageDescription' })}
@@ -80,6 +84,7 @@ export function Settings() {
 }
 
 interface SettingsCardProps {
+  to: string;
   icon: React.ReactNode;
   title: string;
   description: string;
@@ -92,10 +97,10 @@ const colorClasses = {
   purple: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
 };
 
-function SettingsCard({ icon, title, description, color }: SettingsCardProps) {
+function SettingsCard({ to, icon, title, description, color }: SettingsCardProps) {
   return (
     <motion.div variants={item}>
-      <button className="group w-full flex items-center gap-3 p-3 rounded-xl border border-subtle bg-surface hover:bg-surface-hover transition-colors text-left">
+      <Link to={to} className="group w-full flex items-center gap-3 p-3 rounded-xl border border-subtle bg-surface hover:bg-surface-hover transition-colors text-left">
         <span className={`flex-shrink-0 p-2 rounded-lg ${colorClasses[color]}`}>
           {icon}
         </span>
@@ -106,7 +111,7 @@ function SettingsCard({ icon, title, description, color }: SettingsCardProps) {
           <p className="text-sm text-tertiary line-clamp-1">{description}</p>
         </div>
         <ChevronRightIcon className="flex-shrink-0 size-4 text-tertiary group-hover:text-secondary group-hover:translate-x-0.5 transition-all" />
-      </button>
+      </Link>
     </motion.div>
   );
 }

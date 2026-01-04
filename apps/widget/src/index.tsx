@@ -25,6 +25,11 @@ const viewToInitialRoute: Record<string, string> = {
   'meal-plan': '/meal-plan',
   'shopping-list': '/shopping',
   'settings': '/settings',
+  // Result widgets
+  'recipe-result': '/recipe-result',
+  'meal-plan-result': '/meal-plan-result',
+  'shopping-list-result': '/shopping-list-result',
+  'goals-result': '/goals-result',
 };
 
 if (isWidgetMode) {

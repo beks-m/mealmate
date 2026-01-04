@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useIntl } from 'react-intl';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -13,6 +13,17 @@ export function RecipeList() {
   const { recipes, isLoading, setRecipes, setLoading } = useRecipeStore();
   const dataLoadedRef = useRef(false);
   const [displayCount, setDisplayCount] = useState(RECIPES_PER_PAGE);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter recipes by search query (name and ingredients)
+  const filteredRecipes = useMemo(() => {
+    if (!searchQuery.trim()) return recipes;
+    const query = searchQuery.toLowerCase();
+    return recipes.filter(recipe =>
+      recipe.name.toLowerCase().includes(query) ||
+      recipe.ingredients.some(ing => ing.name.toLowerCase().includes(query))
+    );
+  }, [recipes, searchQuery]);
 
   // Check for toolOutput data - poll since it might not be available immediately
   // ChatGPT injects window.openai.toolOutput after the widget mounts
@@ -90,35 +101,74 @@ export function RecipeList() {
     );
   }
 
-  const visibleRecipes = recipes.slice(0, displayCount);
-  const hasMore = displayCount < recipes.length;
+  const visibleRecipes = filteredRecipes.slice(0, displayCount);
+  const hasMore = displayCount < filteredRecipes.length;
 
   const loadMore = () => {
     setDisplayCount((prev) => prev + RECIPES_PER_PAGE);
   };
 
+  // Reset display count when search query changes
+  useEffect(() => {
+    setDisplayCount(RECIPES_PER_PAGE);
+  }, [searchQuery]);
+
   return (
     <div className="space-y-1.5">
-      {/* Compact count badge */}
-      <div className="flex items-center justify-end mb-1">
+      {/* Search bar */}
+      <div className="relative">
+        <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-tertiary" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={intl.formatMessage({ id: 'recipes.searchPlaceholder' })}
+          className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-subtle bg-surface focus:border-primary focus:outline-none placeholder:text-tertiary"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-tertiary hover:text-secondary"
+          >
+            <CloseIcon className="size-3" />
+          </button>
+        )}
+      </div>
+
+      {/* Count badge */}
+      <div className="flex items-center justify-end">
         <span className="text-[10px] font-medium text-tertiary">
-          {recipes.length} recipes
+          {searchQuery ? `${filteredRecipes.length} of ${recipes.length}` : `${recipes.length} recipes`}
         </span>
       </div>
 
+      {/* No results */}
+      {filteredRecipes.length === 0 && searchQuery && (
+        <div className="py-4 text-center">
+          <p className="text-sm text-secondary">
+            {intl.formatMessage({ id: 'recipes.noResults' })}
+          </p>
+          <p className="mt-0.5 text-xs text-tertiary">
+            {intl.formatMessage({ id: 'recipes.tryDifferentSearch' })}
+          </p>
+        </div>
+      )}
+
       {/* Compact recipe list */}
-      <div className="space-y-1">
-        {visibleRecipes.map((recipe, index) => (
-          <CompactRecipeCard key={recipe.id} recipe={recipe} index={index} />
-        ))}
-      </div>
+      {filteredRecipes.length > 0 && (
+        <div className="space-y-1">
+          {visibleRecipes.map((recipe, index) => (
+            <CompactRecipeCard key={recipe.id} recipe={recipe} index={index} />
+          ))}
+        </div>
+      )}
 
       {hasMore && (
         <button
           onClick={loadMore}
           className="w-full py-1.5 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors"
         >
-          +{recipes.length - displayCount} more
+          +{filteredRecipes.length - displayCount} more
         </button>
       )}
     </div>
@@ -141,6 +191,11 @@ function CompactRecipeCard({ recipe, index }: CompactRecipeCardProps) {
         to={`/recipes/${recipe.id}`}
         className="group flex items-center gap-2 px-2.5 py-2 rounded-lg border border-subtle bg-surface hover:bg-surface-hover hover:border-primary/20 transition-all"
       >
+        {/* Favorite indicator */}
+        {recipe.isFavorite && (
+          <HeartIcon className="size-3 text-red-500 flex-shrink-0" filled />
+        )}
+
         {/* Recipe name - truncated */}
         <span className="flex-1 text-sm font-medium text-primary truncate group-hover:text-link transition-colors">
           {recipe.name}
@@ -186,6 +241,32 @@ function ChevronRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <polyline points="9,18 15,12 9,6" />
+    </svg>
+  );
+}
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function HeartIcon({ className, filled }: { className?: string; filled?: boolean }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
     </svg>
   );
 }
