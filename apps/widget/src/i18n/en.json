@@ -61,5 +61,8 @@
   "nutrition.protein": "Protein",
   "nutrition.carbs": "Carbs",
   "nutrition.fat": "Fat",
-  "nutrition.fiber": "Fiber"
+  "nutrition.fiber": "Fiber",
+
+  "version.updateAvailable": "Update available",
+  "version.refreshHint": "A newer version is available. Please refresh your connection to MealMate in ChatGPT settings."
 }

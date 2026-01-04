@@ -569,12 +569,13 @@ export class ToolsService {
       }
 
       // UI tools - include BOTH embedded resource AND _meta["openai/outputTemplate"]
+      // All widget tools include version in structuredContent for client-side version checking
       case 'show_dashboard':
         return {
           content: embeddedResource
             ? [{ type: 'text', text: 'Displaying your MealMate dashboard.' }, embeddedResource]
             : [{ type: 'text', text: 'Displaying your MealMate dashboard.' }],
-          structuredContent: {},
+          structuredContent: { _widgetVersion: this.widgetsService.getVersion() },
           _meta: invocationMeta,
         };
 
@@ -592,7 +593,7 @@ export class ToolsService {
           content: embeddedResource
             ? [{ type: 'text' as const, text: `Displaying ${recipes.length} recipes.` }, embeddedResource]
             : [{ type: 'text' as const, text: `Displaying ${recipes.length} recipes.` }],
-          structuredContent: { recipes, category: input.category },
+          structuredContent: { recipes, category: input.category, _widgetVersion: this.widgetsService.getVersion() },
           _meta: invocationMeta,
         };
       }
@@ -603,7 +604,7 @@ export class ToolsService {
           content: embeddedResource
             ? [{ type: 'text', text: 'Displaying recipe details.' }, embeddedResource]
             : [{ type: 'text', text: 'Displaying recipe details.' }],
-          structuredContent: { recipe_id: input.recipe_id },
+          structuredContent: { recipe_id: input.recipe_id, _widgetVersion: this.widgetsService.getVersion() },
           _meta: invocationMeta,
         };
       }
@@ -614,7 +615,7 @@ export class ToolsService {
           content: embeddedResource
             ? [{ type: 'text', text: 'Displaying your meal plan.' }, embeddedResource]
             : [{ type: 'text', text: 'Displaying your meal plan.' }],
-          structuredContent: { meal_plan_id: input.meal_plan_id },
+          structuredContent: { meal_plan_id: input.meal_plan_id, _widgetVersion: this.widgetsService.getVersion() },
           _meta: invocationMeta,
         };
       }
@@ -625,7 +626,7 @@ export class ToolsService {
           content: embeddedResource
             ? [{ type: 'text', text: 'Displaying your shopping list.' }, embeddedResource]
             : [{ type: 'text', text: 'Displaying your shopping list.' }],
-          structuredContent: { shopping_list_id: input.shopping_list_id },
+          structuredContent: { shopping_list_id: input.shopping_list_id, _widgetVersion: this.widgetsService.getVersion() },
           _meta: invocationMeta,
         };
       }

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +31,8 @@ export class WidgetsService {
   private assetsDir: string;
   private bundledJs: string = '';
   private bundledCss: string = '';
+  // Auto-generated version hash for cache busting
+  private widgetVersion: string = 'v0';
 
   constructor() {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -53,7 +56,25 @@ export class WidgetsService {
     }
 
     this.loadBundledAssets();
+    this.generateVersionHash();
     this.initializeWidgets();
+  }
+
+  private generateVersionHash(): void {
+    // Generate a short hash from bundled content for cache busting
+    const content = this.bundledJs + this.bundledCss;
+    if (content.length > 0) {
+      const hash = crypto.createHash('md5').update(content).digest('hex').substring(0, 8);
+      this.widgetVersion = `v${hash}`;
+      this.logger.log(`Generated widget version: ${this.widgetVersion}`);
+    } else {
+      this.widgetVersion = `v${Date.now()}`;
+      this.logger.warn(`No bundled content, using timestamp version: ${this.widgetVersion}`);
+    }
+  }
+
+  getVersion(): string {
+    return this.widgetVersion;
   }
 
   private loadBundledAssets() {
@@ -159,9 +180,10 @@ export class WidgetsService {
 
     for (const def of widgetDefinitions) {
       // Use ui:// scheme for widget template (ChatGPT fetches via MCP ReadResource)
+      // Include version in URI to bust ChatGPT's cache
       const widget: Widget = {
         ...def,
-        templateUri: `ui://widget/${def.id}.html`,
+        templateUri: `ui://widget/${this.widgetVersion}/${def.id}.html`,
         html: this.readWidgetHtml(def.id),
       };
 
@@ -237,11 +259,12 @@ export class WidgetsService {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="widget-version" content="${this.widgetVersion}">
   <title>MealMate</title>
   <style>${this.bundledCss}</style>
 </head>
 <body>
-  <div id="root" data-view="${view}" data-widget-id="${componentName}"></div>
+  <div id="root" data-view="${view}" data-widget-id="${componentName}" data-html-version="${this.widgetVersion}"></div>
   <script type="module">${this.bundledJs}</script>
 </body>
 </html>`;

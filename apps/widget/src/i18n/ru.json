@@ -61,5 +61,8 @@
   "nutrition.protein": "Белки",
   "nutrition.carbs": "Углеводы",
   "nutrition.fat": "Жиры",
-  "nutrition.fiber": "Клетчатка"
+  "nutrition.fiber": "Клетчатка",
+
+  "version.updateAvailable": "Доступно обновление",
+  "version.refreshHint": "Доступна новая версия. Пожалуйста, переподключите MealMate в настройках ChatGPT."
 }
