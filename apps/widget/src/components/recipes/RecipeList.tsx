@@ -6,7 +6,7 @@ import { useRecipeStore } from '../../stores/recipe-store';
 import { SET_GLOBALS_EVENT_TYPE } from '../../types/openai';
 import type { Recipe } from '@mealmate/shared';
 
-const RECIPES_PER_PAGE = 10;
+const RECIPES_PER_PAGE = 5;
 
 export function RecipeList() {
   const intl = useIntl();

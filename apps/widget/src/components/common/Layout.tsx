@@ -18,14 +18,27 @@ const NAV_ITEMS = [
   { path: '/settings', labelId: 'nav.settings', icon: SettingsIcon },
 ] as const;
 
+// Default max height for the widget content area (in pixels)
+const DEFAULT_MAX_HEIGHT = 500;
+// Header height approximation for calculations
+const HEADER_HEIGHT = 48;
+
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const intl = useIntl();
-  const { safeArea } = useOpenAiGlobal();
+  const { safeArea, maxHeight: chatGptMaxHeight } = useOpenAiGlobal();
   const { displayMode, isFullscreen, goFullscreen, goInline } = useDisplayMode();
 
   const containerRef = useRef<HTMLDivElement>(null);
   useIntrinsicHeight(containerRef);
+
+  // Calculate content max height - use ChatGPT's maxHeight if available, otherwise default
+  // In fullscreen mode, don't limit height
+  const contentMaxHeight = isFullscreen
+    ? undefined
+    : chatGptMaxHeight
+      ? chatGptMaxHeight - HEADER_HEIGHT
+      : DEFAULT_MAX_HEIGHT;
 
   // Apply safe area insets for mobile
   const safeAreaStyle = safeArea?.insets ? {
@@ -84,13 +97,14 @@ export function Layout({ children }: LayoutProps) {
       {/* Version mismatch banner */}
       <VersionBanner />
 
-      {/* Main content with fade animation */}
+      {/* Main content with fade animation and bounded height */}
       <motion.main
         key={location.pathname}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="flex-1 p-4"
+        className="flex-1 p-4 overflow-y-auto"
+        style={{ maxHeight: contentMaxHeight }}
       >
         {children}
       </motion.main>
