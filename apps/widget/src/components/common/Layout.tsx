@@ -1,7 +1,7 @@
-import { type ReactNode, useRef } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useIntl } from 'react-intl';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useOpenAiGlobal } from '../../hooks/use-openai-global';
 import { useDisplayMode, useIntrinsicHeight } from '../../hooks/use-display-mode';
 import { VersionBanner } from './VersionBanner';
@@ -18,27 +18,22 @@ const NAV_ITEMS = [
   { path: '/settings', labelId: 'nav.settings', icon: SettingsIcon },
 ] as const;
 
-// Default max height for the widget content area (in pixels)
-const DEFAULT_MAX_HEIGHT = 500;
-// Header height approximation for calculations
-const HEADER_HEIGHT = 48;
+// Compact header height
+const HEADER_HEIGHT = 36;
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const intl = useIntl();
   const { safeArea, maxHeight: chatGptMaxHeight } = useOpenAiGlobal();
   const { displayMode, isFullscreen, goFullscreen, goInline } = useDisplayMode();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   useIntrinsicHeight(containerRef);
 
-  // Calculate content max height - use ChatGPT's maxHeight if available, otherwise default
-  // In fullscreen mode, don't limit height
-  const contentMaxHeight = isFullscreen
-    ? undefined
-    : chatGptMaxHeight
-      ? chatGptMaxHeight - HEADER_HEIGHT
-      : DEFAULT_MAX_HEIGHT;
+  // Get current page title
+  const currentNav = NAV_ITEMS.find(item => item.path === location.pathname) || NAV_ITEMS[0];
+  const pageTitle = intl.formatMessage({ id: currentNav.labelId });
 
   // Apply safe area insets for mobile
   const safeAreaStyle = safeArea?.insets ? {
@@ -54,61 +49,104 @@ export function Layout({ children }: LayoutProps) {
       className="min-h-full flex flex-col bg-surface"
       style={safeAreaStyle}
     >
-      {/* Clean header with pill-style navigation */}
-      <header className="sticky top-0 z-10 border-b border-subtle bg-surface/95 backdrop-blur-sm">
-        <nav className="flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-none">
-          {NAV_ITEMS.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className="relative flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors"
-              >
-                {isActive && (
+      {/* Compact header: burger + title + actions */}
+      <header className="sticky top-0 z-20 border-b border-subtle bg-surface/95 backdrop-blur-sm">
+        <div className="flex items-center gap-2 px-3 h-9">
+          {/* Burger menu */}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-1 text-secondary hover:text-primary rounded-md hover:bg-surface-hover transition-colors"
+              aria-label="Menu"
+            >
+              <MenuIcon className="size-4" />
+            </button>
+
+            {/* Dropdown menu */}
+            <AnimatePresence>
+              {menuOpen && (
+                <>
                   <motion.div
-                    layoutId="nav-pill"
-                    className="absolute inset-0 bg-primary/10 rounded-full"
-                    transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-10"
+                    onClick={() => setMenuOpen(false)}
                   />
-                )}
-                <Icon className={`relative size-4 ${isActive ? 'text-primary' : 'text-tertiary'}`} />
-                <span className={`relative ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
-                  {intl.formatMessage({ id: item.labelId })}
-                </span>
-              </Link>
-            );
-          })}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-0 top-full mt-1 z-20 min-w-[160px] py-1 bg-surface border border-subtle rounded-lg shadow-lg"
+                  >
+                    {NAV_ITEMS.map((item) => {
+                      const isActive = location.pathname === item.path;
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setMenuOpen(false)}
+                          className={`flex items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
+                            isActive
+                              ? 'text-primary bg-primary/10'
+                              : 'text-secondary hover:text-primary hover:bg-surface-hover'
+                          }`}
+                        >
+                          <Icon className="size-4" />
+                          {intl.formatMessage({ id: item.labelId })}
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Page title */}
+          <h1 className="flex-1 text-sm font-semibold text-primary truncate">
+            {pageTitle}
+          </h1>
 
           {/* Fullscreen toggle */}
           {displayMode !== 'pip' && (
             <button
               onClick={isFullscreen ? goInline : goFullscreen}
-              className="ml-auto p-1.5 text-tertiary hover:text-secondary rounded-lg hover:bg-surface-hover transition-colors"
+              className="p-1 text-tertiary hover:text-secondary rounded-md hover:bg-surface-hover transition-colors"
               title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
               {isFullscreen ? <MinimizeIcon className="size-4" /> : <MaximizeIcon className="size-4" />}
             </button>
           )}
-        </nav>
+        </div>
       </header>
 
       {/* Version mismatch banner */}
       <VersionBanner />
 
-      {/* Main content with fade animation and bounded height */}
+      {/* Main content - tight padding for compact layout */}
       <motion.main
         key={location.pathname}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="flex-1 p-4 overflow-y-auto"
-        style={{ maxHeight: contentMaxHeight }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.15 }}
+        className="flex-1 px-3 py-2 overflow-y-auto"
       >
         {children}
       </motion.main>
     </div>
+  );
+}
+
+function MenuIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
   );
 }
 

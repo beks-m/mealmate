@@ -58,45 +58,35 @@ export function RecipeList() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Header intl={intl} count={0} />
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="animate-pulse p-4 rounded-xl border border-subtle bg-surface"
-            >
-              <div className="h-5 w-2/3 bg-surface-hover rounded mb-2" />
-              <div className="h-4 w-full bg-surface-hover rounded mb-3" />
-              <div className="flex gap-2">
-                <div className="h-5 w-16 bg-surface-hover rounded-full" />
-                <div className="h-5 w-20 bg-surface-hover rounded-full" />
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="space-y-1.5">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="animate-pulse flex items-center gap-2 px-2.5 py-2 rounded-lg border border-subtle bg-surface"
+          >
+            <div className="h-4 w-1/2 bg-surface-hover rounded" />
+            <div className="h-3 w-12 bg-surface-hover rounded-full ml-auto" />
+          </div>
+        ))}
       </div>
     );
   }
 
   if (recipes.length === 0) {
     return (
-      <div className="space-y-4">
-        <Header intl={intl} count={0} />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="p-6 text-center rounded-xl border border-dashed border-subtle bg-surface"
-        >
-          <EmptyIcon className="size-10 mx-auto text-tertiary mb-3" />
-          <p className="text-secondary font-medium">
-            {intl.formatMessage({ id: 'recipes.empty' })}
-          </p>
-          <p className="mt-1 text-sm text-tertiary">
-            {intl.formatMessage({ id: 'recipes.emptyHint' })}
-          </p>
-        </motion.div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="py-8 text-center"
+      >
+        <EmptyIcon className="size-8 mx-auto text-tertiary mb-2" />
+        <p className="text-sm text-secondary font-medium">
+          {intl.formatMessage({ id: 'recipes.empty' })}
+        </p>
+        <p className="mt-0.5 text-xs text-tertiary">
+          {intl.formatMessage({ id: 'recipes.emptyHint' })}
+        </p>
+      </motion.div>
     );
   }
 
@@ -108,107 +98,67 @@ export function RecipeList() {
   };
 
   return (
-    <div className="space-y-4">
-      <Header intl={intl} count={recipes.length} />
+    <div className="space-y-1.5">
+      {/* Compact count badge */}
+      <div className="flex items-center justify-end mb-1">
+        <span className="text-[10px] font-medium text-tertiary">
+          {recipes.length} recipes
+        </span>
+      </div>
 
-      <div className="space-y-3">
-        {visibleRecipes.map((recipe) => (
-          <RecipeCard key={recipe.id} recipe={recipe} />
+      {/* Compact recipe list */}
+      <div className="space-y-1">
+        {visibleRecipes.map((recipe, index) => (
+          <CompactRecipeCard key={recipe.id} recipe={recipe} index={index} />
         ))}
       </div>
 
       {hasMore && (
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <button
           onClick={loadMore}
-          className="w-full py-2.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/15 rounded-xl transition-colors"
+          className="w-full py-1.5 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors"
         >
-          {intl.formatMessage(
-            { id: 'recipes.loadMore', defaultMessage: 'Load more ({remaining} remaining)' },
-            { remaining: recipes.length - displayCount }
-          )}
-        </motion.button>
+          +{recipes.length - displayCount} more
+        </button>
       )}
     </div>
   );
 }
 
-function Header({ intl, count }: { intl: ReturnType<typeof useIntl>; count: number }) {
+interface CompactRecipeCardProps {
+  recipe: Recipe;
+  index: number;
+}
+
+function CompactRecipeCard({ recipe, index }: CompactRecipeCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex items-center justify-between"
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.03, duration: 0.15 }}
     >
-      <h1 className="text-xl font-semibold text-primary">
-        {intl.formatMessage({ id: 'nav.recipes' })}
-      </h1>
-      {count > 0 && (
-        <span className="px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
-          {count}
-        </span>
-      )}
-    </motion.div>
-  );
-}
-
-interface RecipeCardProps {
-  recipe: Recipe;
-}
-
-function RecipeCard({ recipe }: RecipeCardProps) {
-  const intl = useIntl();
-
-  return (
-    <div>
       <Link
         to={`/recipes/${recipe.id}`}
-        className="group block p-4 rounded-xl border border-subtle bg-surface hover:bg-surface-hover transition-colors"
+        className="group flex items-center gap-2 px-2.5 py-2 rounded-lg border border-subtle bg-surface hover:bg-surface-hover hover:border-primary/20 transition-all"
       >
-        <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <RecipeIcon className="size-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-primary group-hover:text-link transition-colors">
-              {recipe.name}
-            </h3>
-            {recipe.description && (
-              <p className="mt-0.5 text-sm text-tertiary line-clamp-2">
-                {recipe.description}
-              </p>
-            )}
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <NutritionBadge
-                icon={<FlameIcon className="size-3" />}
-                label={intl.formatMessage({ id: 'recipe.calories' }, { count: recipe.nutrition.calories })}
-              />
-              <NutritionBadge
-                icon={<ProteinIcon className="size-3" />}
-                label={`${recipe.nutrition.proteinG}g ${intl.formatMessage({ id: 'nutrition.protein' })}`}
-              />
-              {recipe.prepTimeMinutes && (
-                <NutritionBadge
-                  icon={<ClockIcon className="size-3" />}
-                  label={`${recipe.prepTimeMinutes} min`}
-                />
-              )}
-            </div>
-          </div>
-          <ChevronRightIcon className="flex-shrink-0 size-4 text-tertiary group-hover:text-secondary group-hover:translate-x-0.5 transition-all mt-1" />
-        </div>
-      </Link>
-    </div>
-  );
-}
+        {/* Recipe name - truncated */}
+        <span className="flex-1 text-sm font-medium text-primary truncate group-hover:text-link transition-colors">
+          {recipe.name}
+        </span>
 
-function NutritionBadge({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-surface-hover text-secondary rounded-full">
-      {icon}
-      {label}
-    </span>
+        {/* Compact stats */}
+        <span className="flex items-center gap-1.5 text-[11px] text-tertiary whitespace-nowrap">
+          <span className="flex items-center gap-0.5">
+            <FlameIcon className="size-3" />
+            {recipe.nutrition.calories}
+          </span>
+          <span className="text-subtle">·</span>
+          <span>{recipe.nutrition.proteinG}g</span>
+        </span>
+
+        <ChevronRightIcon className="size-3.5 text-tertiary group-hover:text-secondary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+      </Link>
+    </motion.div>
   );
 }
 
@@ -224,39 +174,10 @@ function EmptyIcon({ className }: { className?: string }) {
   );
 }
 
-function RecipeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-      <path d="M2 17l10 5 10-5" />
-      <path d="M2 12l10 5 10-5" />
-    </svg>
-  );
-}
-
 function FlameIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z" />
-    </svg>
-  );
-}
-
-function ProteinIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v12" />
-      <path d="M6 12h12" />
-    </svg>
-  );
-}
-
-function ClockIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12,6 12,12 16,14" />
     </svg>
   );
 }
