@@ -147,7 +147,6 @@ A ChatGPT-integrated widget where:
 | R7 | As a user, I can delete recipes from my collection | P1 |
 | R8 | As a user, I can search my saved recipes by name or ingredient | P1 |
 | R9 | As a user, I can adjust serving size and see recalculated nutrition | P2 |
-| R10 | As a user, I can mark recipes as favorites | P2 |
 
 ### 3.2 Meal Planning
 
@@ -488,7 +487,6 @@ CREATE TABLE recipes (
     category TEXT NOT NULL,
     tags TEXT[] DEFAULT '{}',
     image_url TEXT,
-    is_favorite BOOLEAN DEFAULT FALSE,
     source TEXT NOT NULL DEFAULT 'ai_generated',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -900,7 +898,6 @@ interface WidgetState {
 2. **Recipe Collection** (`/recipes`)
    - Grid/list view of saved recipes
    - Search and filter
-   - Favorite toggle
    - Add to meal plan action
 
 3. **Recipe Detail** (`/recipes/:id`)

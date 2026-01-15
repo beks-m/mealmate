@@ -183,8 +183,10 @@ export class ToolsService {
         annotations: {
           destructiveHint: false,
           openWorldHint: false,
-          readOnlyHint: false,
+          readOnlyHint: true,  // Changed to true to test if this enables widget rendering
         },
+        // Link result widget metadata directly to the tool definition
+        _meta: this.widgetsService.getWidgetMeta(this.widgetsService.getWidgetById('mealmate-recipe-result')!),
       },
       {
         name: 'get_recipes',
@@ -430,6 +432,78 @@ export class ToolsService {
           },
         },
         _meta: this.widgetsService.getWidgetMeta(this.widgetsService.getWidgetById('mealmate-settings')!),
+        annotations: {
+          destructiveHint: false,
+          openWorldHint: false,
+          readOnlyHint: true,
+        },
+      },
+      // Result display tools - these render result widgets after write operations
+      {
+        name: 'show_saved_recipe',
+        title: 'Show Saved Recipe',
+        description: 'Display a recipe that was just saved with a success confirmation widget.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            recipe_id: { type: 'string', description: 'ID of the saved recipe' },
+          },
+          required: ['recipe_id'],
+        },
+        _meta: this.widgetsService.getWidgetMeta(this.widgetsService.getWidgetById('mealmate-recipe-result')!),
+        annotations: {
+          destructiveHint: false,
+          openWorldHint: false,
+          readOnlyHint: true,
+        },
+      },
+      {
+        name: 'show_created_meal_plan',
+        title: 'Show Created Meal Plan',
+        description: 'Display a meal plan that was just created with a success confirmation widget.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            meal_plan_id: { type: 'string', description: 'ID of the created meal plan' },
+          },
+          required: ['meal_plan_id'],
+        },
+        _meta: this.widgetsService.getWidgetMeta(this.widgetsService.getWidgetById('mealmate-meal-plan-result')!),
+        annotations: {
+          destructiveHint: false,
+          openWorldHint: false,
+          readOnlyHint: true,
+        },
+      },
+      {
+        name: 'show_generated_shopping_list',
+        title: 'Show Generated Shopping List',
+        description: 'Display a shopping list that was just generated with a success confirmation widget.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            shopping_list_id: { type: 'string', description: 'ID of the generated shopping list' },
+          },
+          required: ['shopping_list_id'],
+        },
+        _meta: this.widgetsService.getWidgetMeta(this.widgetsService.getWidgetById('mealmate-shopping-list-result')!),
+        annotations: {
+          destructiveHint: false,
+          openWorldHint: false,
+          readOnlyHint: true,
+        },
+      },
+      {
+        name: 'show_updated_goals',
+        title: 'Show Updated Goals',
+        description: 'Display user goals that were just updated with a success confirmation widget.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            section: { type: 'string', description: 'Optional section to highlight' },
+          },
+        },
+        _meta: this.widgetsService.getWidgetMeta(this.widgetsService.getWidgetById('mealmate-goals-result')!),
         annotations: {
           destructiveHint: false,
           openWorldHint: false,
@@ -720,6 +794,78 @@ export class ToolsService {
             : [{ type: 'text', text: 'Displaying your settings.' }],
           structuredContent: { profile, _widgetVersion: this.widgetsService.getVersion() },
           _meta: invocationMeta,
+        };
+      }
+
+      // Result display tools - render widgets after write operations
+      case 'show_saved_recipe': {
+        const { recipe_id } = args as { recipe_id: string };
+        const recipe = await this.recipesService.findById(recipe_id);
+        const resultWidget = this.widgetsService.getWidgetById('mealmate-recipe-result');
+        const resultResource = resultWidget ? {
+          type: 'resource' as const,
+          resource: { uri: resultWidget.templateUri, text: resultWidget.html, mimeType: 'text/html+skybridge' },
+        } : null;
+        this.logger.log(`show_saved_recipe: Recipe ${recipe_id}, widget found: ${!!resultWidget}`);
+        return {
+          content: resultResource
+            ? [{ type: 'text', text: 'Recipe saved successfully!' }, resultResource]
+            : [{ type: 'text', text: 'Recipe saved successfully!' }],
+          structuredContent: { recipe, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: resultWidget ? this.widgetsService.getWidgetMeta(resultWidget) : {},
+        };
+      }
+
+      case 'show_created_meal_plan': {
+        const { meal_plan_id } = args as { meal_plan_id: string };
+        const mealPlan = await this.mealPlansService.findById(meal_plan_id);
+        const resultWidget = this.widgetsService.getWidgetById('mealmate-meal-plan-result');
+        const resultResource = resultWidget ? {
+          type: 'resource' as const,
+          resource: { uri: resultWidget.templateUri, text: resultWidget.html, mimeType: 'text/html+skybridge' },
+        } : null;
+        this.logger.log(`show_created_meal_plan: MealPlan ${meal_plan_id}, widget found: ${!!resultWidget}`);
+        return {
+          content: resultResource
+            ? [{ type: 'text', text: 'Meal plan created successfully!' }, resultResource]
+            : [{ type: 'text', text: 'Meal plan created successfully!' }],
+          structuredContent: { mealPlan, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: resultWidget ? this.widgetsService.getWidgetMeta(resultWidget) : {},
+        };
+      }
+
+      case 'show_generated_shopping_list': {
+        const { shopping_list_id } = args as { shopping_list_id: string };
+        const shoppingList = await this.shoppingListsService.findById(shopping_list_id);
+        const resultWidget = this.widgetsService.getWidgetById('mealmate-shopping-list-result');
+        const resultResource = resultWidget ? {
+          type: 'resource' as const,
+          resource: { uri: resultWidget.templateUri, text: resultWidget.html, mimeType: 'text/html+skybridge' },
+        } : null;
+        this.logger.log(`show_generated_shopping_list: ShoppingList ${shopping_list_id}, widget found: ${!!resultWidget}`);
+        return {
+          content: resultResource
+            ? [{ type: 'text', text: 'Shopping list generated successfully!' }, resultResource]
+            : [{ type: 'text', text: 'Shopping list generated successfully!' }],
+          structuredContent: { shoppingList, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: resultWidget ? this.widgetsService.getWidgetMeta(resultWidget) : {},
+        };
+      }
+
+      case 'show_updated_goals': {
+        const profile = await this.usersService.getProfile();
+        const resultWidget = this.widgetsService.getWidgetById('mealmate-goals-result');
+        const resultResource = resultWidget ? {
+          type: 'resource' as const,
+          resource: { uri: resultWidget.templateUri, text: resultWidget.html, mimeType: 'text/html+skybridge' },
+        } : null;
+        this.logger.log(`show_updated_goals: widget found: ${!!resultWidget}`);
+        return {
+          content: resultResource
+            ? [{ type: 'text', text: 'Goals updated successfully!' }, resultResource]
+            : [{ type: 'text', text: 'Goals updated successfully!' }],
+          structuredContent: { goals: profile, _widgetVersion: this.widgetsService.getVersion() },
+          _meta: resultWidget ? this.widgetsService.getWidgetMeta(resultWidget) : {},
         };
       }
 
